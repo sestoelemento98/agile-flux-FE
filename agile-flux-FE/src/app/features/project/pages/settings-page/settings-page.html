@@ -1,0 +1,103 @@
+<div class="settings">
+  <div class="af-page-head">
+    <div>
+      <h2>Cài đặt dự án</h2>
+      <p>Chủ dự án: {{ ctx.project()?.ownerName }}</p>
+    </div>
+  </div>
+
+  @if (!ctx.isAdmin()) {
+    <nz-alert
+      class="af-readonly-banner"
+      nzType="info"
+      nzShowIcon
+      nzMessage="Chỉ quản trị viên dự án được sửa cài đặt."
+    ></nz-alert>
+  }
+
+  <div class="af-panel">
+    <h3>Thông tin chung</h3>
+    <form nz-form nzLayout="vertical" [formGroup]="form" (ngSubmit)="save()">
+      <nz-form-item>
+        <nz-form-label>Key</nz-form-label>
+        <nz-form-control nzExtra="Key không sửa được sau khi tạo (đã dùng trong mã issue).">
+          <input nz-input [value]="ctx.project()?.key" disabled />
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label nzRequired>Tên dự án</nz-form-label>
+        <nz-form-control nzErrorTip="Vui lòng nhập tên (tối đa 255 ký tự)">
+          <input nz-input formControlName="name" maxlength="255" />
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label>Mô tả</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            formControlName="description"
+            [nzAutosize]="{ minRows: 3, maxRows: 8 }"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label>Trưởng dự án (lead)</nz-form-label>
+        <nz-form-control>
+          <nz-select formControlName="leadId" nzAllowClear nzShowSearch nzPlaceHolder="Chưa có">
+            @for (m of ctx.members(); track m.userId) {
+              <nz-option [nzValue]="m.userId" [nzLabel]="m.userFullName"></nz-option>
+            }
+          </nz-select>
+        </nz-form-control>
+      </nz-form-item>
+      @if (canEdit()) {
+        <button
+          nz-button
+          nzType="primary"
+          type="submit"
+          [nzLoading]="saving()"
+          [disabled]="form.pristine"
+        >
+          Lưu thay đổi
+        </button>
+      }
+    </form>
+  </div>
+
+  @if (ctx.isAdmin()) {
+    <div class="af-panel danger">
+      @if (ctx.project()?.archived) {
+        <div class="danger-row">
+          <div>
+            <h3>Khôi phục dự án</h3>
+            <span class="af-muted">Dự án đang ở chế độ chỉ đọc. Khôi phục để chỉnh sửa tiếp.</span>
+          </div>
+          <button nz-button nzType="primary" [nzLoading]="busy()" (click)="unarchive()">
+            <span nz-icon nzType="rollback"></span> Khôi phục
+          </button>
+        </div>
+      } @else {
+        <div class="danger-row">
+          <div>
+            <h3>Archive dự án</h3>
+            <span class="af-muted"
+              >Dự án chuyển sang chỉ đọc, không bị xoá. Có thể khôi phục sau.</span
+            >
+          </div>
+          <button
+            nz-button
+            nzDanger
+            [nzLoading]="busy()"
+            nz-popconfirm
+            nzPopconfirmTitle="Archive dự án này?"
+            nzOkText="Archive"
+            nzCancelText="Huỷ"
+            (nzOnConfirm)="archive()"
+          >
+            <span nz-icon nzType="container"></span> Archive
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

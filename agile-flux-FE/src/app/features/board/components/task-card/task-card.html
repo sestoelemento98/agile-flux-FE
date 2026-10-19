@@ -1,0 +1,60 @@
+<div class="af-kanban-card" [class.af-kanban-card--done]="completed()" (click)="onClick()">
+  <div class="af-kanban-card__head">
+    <app-issue-type-icon [type]="issue().type"></app-issue-type-icon>
+    <span class="af-kanban-card__key">{{ issue().issueKey }}</span>
+    <span class="af-kanban-card__spacer"></span>
+    <app-priority-icon [priority]="issue().priority"></app-priority-icon>
+  </div>
+
+  <div class="af-kanban-card__title">{{ issue().title }}</div>
+
+  @if (epic() || issue().labels.length) {
+    <div class="af-kanban-card__tags">
+      @if (epic(); as epic) {
+        <span
+          class="af-kanban-card__epic"
+          [style.color]="epic.color"
+          [style.borderColor]="epic.color"
+        >
+          {{ epic.name }}
+        </span>
+      }
+      @for (label of issue().labels; track label.id) {
+        <app-label-tag [label]="label"></app-label-tag>
+      }
+    </div>
+  }
+
+  <div class="af-kanban-card__footer">
+    @if (issue().assigneeName; as name) {
+      <nz-avatar
+        class="af-kanban-card__avatar"
+        nzSize="small"
+        [nzText]="name.charAt(0)"
+        nz-tooltip
+        [nzTooltipTitle]="name"
+      ></nz-avatar>
+    }
+
+    @if (issue().dueDate) {
+      <span class="af-kanban-card__date" [class.af-kanban-card__date--overdue]="overdue()">
+        <span nz-icon nzType="calendar"></span>
+        {{ dueLabel() }}
+      </span>
+    }
+
+    <span class="af-kanban-card__spacer"></span>
+
+    @if (issue().storyPoints !== null) {
+      <span class="af-kanban-card__points" nz-tooltip nzTooltipTitle="Story points">
+        {{ issue().storyPoints }}
+      </span>
+    }
+
+    @if (completed()) {
+      <span class="af-kanban-card__done">
+        <span nz-icon nzType="check-circle" nzTheme="fill"></span>
+      </span>
+    }
+  </div>
+</div>

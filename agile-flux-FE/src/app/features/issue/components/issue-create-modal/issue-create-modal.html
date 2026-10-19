@@ -1,0 +1,135 @@
+<nz-modal
+  [nzVisible]="ctx.issueDraft() !== null"
+  nzTitle="Tạo issue"
+  [nzWidth]="640"
+  [nzOkLoading]="submitting()"
+  nzOkText="Tạo"
+  nzCancelText="Huỷ"
+  (nzOnOk)="submit()"
+  (nzOnCancel)="close()"
+>
+  <ng-container *nzModalContent>
+    <form nz-form nzLayout="vertical" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="grid">
+        <nz-form-item>
+          <nz-form-label nzRequired>Loại</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="type">
+              @for (t of types; track t.key) {
+                <nz-option [nzValue]="t.key" [nzLabel]="t.title"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>Độ ưu tiên</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="priority">
+              @for (p of priorities; track p.key) {
+                <nz-option [nzValue]="p.key" [nzLabel]="p.title"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+
+      @if (isSubTask()) {
+        <nz-form-item>
+          <nz-form-label nzRequired>Issue cha</nz-form-label>
+          <nz-form-control nzErrorTip="Sub-task bắt buộc có issue cha">
+            <nz-select formControlName="parentIssueId" nzShowSearch nzPlaceHolder="Chọn issue cha">
+              @for (i of parentOptions(); track i.id) {
+                <nz-option [nzValue]="i.id" [nzLabel]="i.issueKey + ' · ' + i.title"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+      }
+
+      <nz-form-item>
+        <nz-form-label nzRequired>Tiêu đề</nz-form-label>
+        <nz-form-control [nzErrorTip]="titleError">
+          <input nz-input formControlName="title" maxlength="500" placeholder="Cần làm gì?" />
+          <ng-template #titleError let-control>
+            {{ control.errors?.server || 'Vui lòng nhập tiêu đề (tối đa 500 ký tự)' }}
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label>Mô tả</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            formControlName="description"
+            [nzAutosize]="{ minRows: 3, maxRows: 8 }"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+
+      <div class="grid">
+        <nz-form-item>
+          <nz-form-label>Người thực hiện</nz-form-label>
+          <nz-form-control>
+            <nz-select
+              formControlName="assigneeId"
+              nzAllowClear
+              nzShowSearch
+              nzPlaceHolder="Chưa giao"
+            >
+              @for (m of ctx.members(); track m.userId) {
+                <nz-option [nzValue]="m.userId" [nzLabel]="m.userFullName"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>Sprint</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="sprintId" nzAllowClear nzPlaceHolder="Backlog">
+              @for (s of ctx.openSprints(); track s.id) {
+                <nz-option [nzValue]="s.id" [nzLabel]="s.name"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>Epic</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="epicId" nzAllowClear nzPlaceHolder="Không có">
+              @for (e of ctx.epics(); track e.id) {
+                <nz-option [nzValue]="e.id" [nzLabel]="e.name"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>Story points</nz-form-label>
+          <nz-form-control nzErrorTip="Từ 0 đến 999.9">
+            <nz-input-number
+              formControlName="storyPoints"
+              [nzMin]="0"
+              [nzMax]="999.9"
+              [nzStep]="0.5"
+              [nzPrecision]="1"
+              nzPlaceHolder="—"
+            ></nz-input-number>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>Hạn</nz-form-label>
+          <nz-form-control>
+            <!-- input date native trả về đúng "YYYY-MM-DD", không lệch múi giờ -->
+            <input nz-input type="date" formControlName="dueDate" />
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+      <button type="submit" hidden></button>
+    </form>
+  </ng-container>
+</nz-modal>

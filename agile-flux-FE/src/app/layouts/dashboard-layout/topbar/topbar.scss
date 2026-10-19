@@ -1,0 +1,147 @@
+.af-topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 64px;
+  padding: 0 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #eef0f3;
+  box-sizing: border-box;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #545a66;
+
+    &:hover {
+      color: #16181d;
+    }
+  }
+
+  &__project {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 16px;
+    color: #16181d;
+
+    &:hover {
+      background: #f3f5f9;
+      color: #16181d;
+    }
+  }
+
+  &__project-key {
+    padding: 1px 6px;
+    border-radius: 5px;
+    background: #eaf1ff;
+    color: #2f6bff;
+    font-size: 12px;
+  }
+
+  &__project-name {
+    white-space: nowrap;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__clear {
+    color: #b0b5be;
+    cursor: pointer;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #545a66;
+
+    &:hover {
+      background: #f3f5f9;
+    }
+  }
+
+  &__user-name {
+    font-weight: 600;
+    color: #16181d;
+    white-space: nowrap;
+  }
+
+  &__members {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8a8f98;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  &__members-icon {
+    font-size: 15px;
+  }
+
+  &__avatars {
+    display: flex;
+    align-items: center;
+    margin-left: 6px;
+  }
+
+  &__avatar {
+    margin-left: -8px;
+    border: 2px solid #fff;
+
+    &--extra {
+      background: #eef0f3;
+      color: #545a66;
+      font-size: 11px;
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  &__search {
+    width: 260px;
+  }
+
+  &__action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #545a66;
+  }
+
+  &__user-avatar {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 992px) {
+  .af-topbar {
+    &__members-count {
+      display: none;
+    }
+
+    &__user-name {
+      display: none;
+    }
+  }
+}

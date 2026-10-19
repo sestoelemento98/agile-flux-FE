@@ -1,0 +1,30 @@
+<div class="af-shell">
+  <app-sidebar
+    [collapsed]="sidebarCollapsed()"
+    [brandName]="'Agile Flux'"
+    [menuItems]="menuItems()"
+    [showProgress]="!!progress()"
+    [progress]="progress() ?? { percent: 0, label: '', subLabel: '' }"
+    (progressClick)="onProgressClick()"
+  ></app-sidebar>
+
+  <div class="af-shell__main">
+    <app-topbar
+      [projectName]="projectName()"
+      [projectKey]="ctx.project()?.key ?? null"
+      [archived]="ctx.project()?.archived ?? false"
+      [showProjectTools]="!!ctx.project()"
+      [members]="members()"
+      [currentUser]="currentUser()"
+      [searchValue]="ctx.searchText()"
+      (search)="onSearch($event)"
+      (toggleSidebar)="onToggleSidebar()"
+      (profileClick)="goProfile()"
+      (logoutClick)="logout()"
+    ></app-topbar>
+
+    <div class="af-shell__content">
+      <router-outlet />
+    </div>
+  </div>
+</div>

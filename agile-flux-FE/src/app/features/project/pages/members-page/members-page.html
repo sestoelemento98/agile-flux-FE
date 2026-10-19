@@ -1,0 +1,123 @@
+<div class="af-page-head">
+  <div>
+    <h2>Thành viên</h2>
+    <p>Quản trị viên được sửa dự án và quản lý thành viên. Chủ dự án luôn là quản trị viên.</p>
+  </div>
+  @if (canManage()) {
+    <button nz-button nzType="primary" (click)="openAdd()">
+      <span nz-icon nzType="user-add"></span> Thêm thành viên
+    </button>
+  }
+</div>
+
+<div class="af-panel">
+  <nz-table #table [nzData]="ctx.members()" [nzFrontPagination]="false" nzSize="middle">
+    <thead>
+      <tr>
+        <th>Thành viên</th>
+        <th>Email</th>
+        <th nzWidth="170px">Vai trò</th>
+        <th>Tham gia</th>
+        <th nzWidth="130px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (m of table.data; track m.id) {
+        <tr>
+          <td>
+            <span class="person">
+              <nz-avatar nzSize="small" [nzText]="m.userFullName.charAt(0)"></nz-avatar>
+              <strong>{{ m.userFullName }}</strong>
+              @if (m.userId === meId()) {
+                <nz-tag>Bạn</nz-tag>
+              }
+              @if (isOwner(m)) {
+                <nz-tag nzColor="gold">Chủ dự án</nz-tag>
+              }
+            </span>
+          </td>
+          <td class="af-muted">{{ m.userEmail }}</td>
+          <td>
+            @if (canManage() && !isOwner(m)) {
+              <nz-select
+                class="role-select"
+                nzSize="small"
+                [ngModel]="m.role"
+                (ngModelChange)="changeRole(m, $event)"
+              >
+                <nz-option nzValue="admin" [nzLabel]="roles.admin"></nz-option>
+                <nz-option nzValue="member" [nzLabel]="roles.member"></nz-option>
+              </nz-select>
+            } @else {
+              <nz-tag [nzColor]="m.role === 'admin' ? 'blue' : 'default'">{{
+                roles[m.role]
+              }}</nz-tag>
+            }
+          </td>
+          <td class="af-muted">{{ m.createdAt | date: 'dd/MM/yyyy' }}</td>
+          <td>
+            @if (!isOwner(m) && !ctx.readonly()) {
+              @if (m.userId === meId()) {
+                <button
+                  nz-button
+                  nzSize="small"
+                  nzDanger
+                  nz-popconfirm
+                  nzPopconfirmTitle="Rời khỏi dự án này?"
+                  nzOkText="Rời"
+                  nzCancelText="Huỷ"
+                  (nzOnConfirm)="remove(m)"
+                >
+                  <span nz-icon nzType="logout"></span> Rời dự án
+                </button>
+              } @else if (canManage()) {
+                <button
+                  nz-button
+                  nzSize="small"
+                  nzType="text"
+                  nzDanger
+                  nz-popconfirm
+                  [nzPopconfirmTitle]="'Xoá ' + m.userFullName + ' khỏi dự án?'"
+                  nzOkText="Xoá"
+                  nzCancelText="Huỷ"
+                  (nzOnConfirm)="remove(m)"
+                >
+                  <span nz-icon nzType="delete"></span>
+                </button>
+              }
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </nz-table>
+</div>
+
+<nz-modal
+  [nzVisible]="addOpen()"
+  nzTitle="Thêm thành viên"
+  nzOkText="Thêm"
+  nzCancelText="Huỷ"
+  [nzOkLoading]="adding()"
+  [nzOkDisabled]="!newUserId"
+  (nzOnOk)="add()"
+  (nzOnCancel)="addOpen.set(false)"
+>
+  <ng-container *nzModalContent>
+    <nz-select
+      class="full"
+      nzShowSearch
+      nzPlaceHolder="Chọn người dùng"
+      [(ngModel)]="newUserId"
+      [nzNotFoundContent]="'Không còn người dùng nào để thêm'"
+    >
+      @for (u of candidates(); track u.id) {
+        <nz-option [nzValue]="u.id" [nzLabel]="u.fullName + ' (' + u.email + ')'"></nz-option>
+      }
+    </nz-select>
+    <nz-select class="full" [(ngModel)]="newRole">
+      <nz-option nzValue="member" [nzLabel]="roles.member"></nz-option>
+      <nz-option nzValue="admin" [nzLabel]="roles.admin"></nz-option>
+    </nz-select>
+  </ng-container>
+</nz-modal>

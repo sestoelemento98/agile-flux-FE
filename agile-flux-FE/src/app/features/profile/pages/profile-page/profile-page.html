@@ -1,0 +1,108 @@
+<div class="profile">
+  <div class="af-page-head">
+    <div>
+      <h2>Hồ sơ cá nhân</h2>
+    </div>
+  </div>
+
+  @if (auth.user(); as u) {
+    <div class="af-panel">
+      <div class="who">
+        <nz-avatar
+          [nzSize]="56"
+          [nzSrc]="u.avatarUrl ?? undefined"
+          [nzText]="u.fullName.charAt(0)"
+        ></nz-avatar>
+        <div>
+          <h3>{{ u.fullName }}</h3>
+          <div class="af-muted">{{ u.email }} · &#64;{{ u.username }}</div>
+          <div class="af-muted">Tham gia {{ u.createdAt | date: 'dd/MM/yyyy' }}</div>
+        </div>
+      </div>
+
+      <form nz-form nzLayout="vertical" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <nz-form-item>
+          <nz-form-label nzRequired>Họ tên</nz-form-label>
+          <nz-form-control nzErrorTip="Vui lòng nhập họ tên (tối đa 255 ký tự)">
+            <input nz-input formControlName="fullName" maxlength="255" />
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label>Ảnh đại diện (URL)</nz-form-label>
+          <nz-form-control nzExtra="Dán đường dẫn ảnh. Chưa hỗ trợ tải ảnh lên.">
+            <input nz-input formControlName="avatarUrl" placeholder="https://..." />
+          </nz-form-control>
+        </nz-form-item>
+        <button
+          nz-button
+          nzType="primary"
+          type="submit"
+          [nzLoading]="savingProfile()"
+          [disabled]="profileForm.pristine"
+        >
+          Lưu hồ sơ
+        </button>
+      </form>
+    </div>
+  }
+
+  <div class="af-panel">
+    <h3>Đổi mật khẩu</h3>
+    <form nz-form nzLayout="vertical" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+      <nz-form-item>
+        <nz-form-label nzRequired>Mật khẩu hiện tại</nz-form-label>
+        <nz-form-control nzErrorTip="Vui lòng nhập mật khẩu hiện tại">
+          <input
+            nz-input
+            type="password"
+            formControlName="currentPassword"
+            autocomplete="current-password"
+          />
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label nzRequired>Mật khẩu mới</nz-form-label>
+        <nz-form-control nzErrorTip="Tối thiểu 8 ký tự">
+          <input
+            nz-input
+            type="password"
+            formControlName="newPassword"
+            autocomplete="new-password"
+          />
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label nzRequired>Nhập lại mật khẩu mới</nz-form-label>
+        <nz-form-control>
+          <input nz-input type="password" formControlName="confirm" autocomplete="new-password" />
+        </nz-form-control>
+      </nz-form-item>
+      @if (passwordForm.hasError('mismatch') && passwordForm.controls.confirm.dirty) {
+        <div class="form-error">Mật khẩu nhập lại không khớp.</div>
+      }
+      <button nz-button nzType="primary" type="submit" [nzLoading]="savingPassword()">
+        Đổi mật khẩu
+      </button>
+    </form>
+  </div>
+
+  <div class="af-panel danger">
+    <div class="danger-row">
+      <div>
+        <h3>Khoá tài khoản</h3>
+        <span class="af-muted">Sau khi khoá bạn sẽ không đăng nhập được nữa.</span>
+      </div>
+      <button
+        nz-button
+        nzDanger
+        nz-popconfirm
+        nzPopconfirmTitle="Khoá tài khoản của bạn? Không thể tự mở lại."
+        nzOkText="Khoá"
+        nzCancelText="Huỷ"
+        (nzOnConfirm)="deactivate()"
+      >
+        <span nz-icon nzType="lock"></span> Khoá tài khoản
+      </button>
+    </div>
+  </div>
+</div>

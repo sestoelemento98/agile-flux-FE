@@ -1,0 +1,50 @@
+:root {
+  /* Brand */
+  --color-primary: #0c66e4;
+  --color-primary-hover: #0055cc;
+  --color-primary-light: #e9f2ff;
+
+  /* Text */
+  --color-text-primary: #172b4d;
+  --color-text-secondary: #5e6c84;
+
+  /* Border */
+  --color-border: #dfe1e6;
+
+  /* Surface */
+  --color-background: #f4f5f7;
+  --color-surface: #ffffff;
+
+  /* Status */
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Layout */
+  --login-card-width: 420px;
+
+  /* Transition */
+  --transition: 0.2s ease;
+
+  --sidebar-width: 260px;
+
+  --topbar-height: 64px;
+
+  --search-width: 360px;
+}

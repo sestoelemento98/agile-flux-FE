@@ -1,0 +1,19 @@
+.af-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f6f8;
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__content {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+  }
+}

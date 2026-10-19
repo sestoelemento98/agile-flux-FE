@@ -1,0 +1,454 @@
+<nz-drawer
+  [nzVisible]="!!issue()"
+  nzWidth="min(860px, 100vw)"
+  [nzTitle]="drawerTitle"
+  [nzExtra]="drawerExtra"
+  [nzFooter]="dirty() ? drawerFooter : undefined"
+  nzWrapClassName="af-issue-drawer"
+  (nzOnClose)="close()"
+>
+  <ng-container *nzDrawerContent>
+    @if (issue(); as issue) {
+      <form class="detail" [formGroup]="form" (ngSubmit)="save()">
+        <!-- ===== Cột chính ===== -->
+        <div class="detail__main">
+          @if (parentIssue(); as parent) {
+            <a class="detail__parent" (click)="open(parent)">
+              <app-issue-type-icon [type]="parent.type"></app-issue-type-icon>
+              {{ parent.issueKey }} · {{ parent.title }}
+            </a>
+          }
+
+          <textarea
+            class="detail__title"
+            nz-input
+            formControlName="title"
+            maxlength="500"
+            [nzAutosize]="{ minRows: 1, maxRows: 4 }"
+            placeholder="Tiêu đề"
+          ></textarea>
+          @if (form.controls.title.invalid && form.controls.title.dirty) {
+            <div class="detail__error">
+              {{ form.controls.title.errors?.['server'] || 'Tiêu đề bắt buộc, tối đa 500 ký tự' }}
+            </div>
+          }
+
+          <h4 class="detail__section-title">Mô tả</h4>
+          <textarea
+            nz-input
+            formControlName="description"
+            [nzAutosize]="{ minRows: 4, maxRows: 14 }"
+            placeholder="Thêm mô tả..."
+          ></textarea>
+
+          @if (issue.type !== 'sub_task') {
+            <div class="detail__section-head">
+              <h4 class="detail__section-title">Sub-task ({{ subTasks().length }})</h4>
+              @if (!readonly()) {
+                <button nz-button nzType="link" nzSize="small" type="button" (click)="addSubTask()">
+                  <span nz-icon nzType="plus"></span> Thêm sub-task
+                </button>
+              }
+            </div>
+            @for (st of subTasks(); track st.id) {
+              <div class="subtask" (click)="open(st)">
+                <app-issue-type-icon [type]="st.type"></app-issue-type-icon>
+                <span class="subtask__key">{{ st.issueKey }}</span>
+                <span class="subtask__title">{{ st.title }}</span>
+                <span class="subtask__assignee">{{ st.assigneeName ?? '' }}</span>
+                <app-status-tag [status]="st.status"></app-status-tag>
+              </div>
+            }
+          }
+
+          <nz-tabs class="detail__tabs" nzSize="small">
+            <!-- Bình luận -->
+            <nz-tab [nzTitle]="'Bình luận (' + comments().length + ')'">
+              <nz-spin [nzSpinning]="commentsLoading()">
+                @for (c of comments(); track c.id) {
+                  <div class="comment">
+                    <nz-avatar
+                      nzSize="small"
+                      [nzSrc]="c.authorAvatarUrl ?? undefined"
+                      [nzText]="c.authorName.charAt(0)"
+                    ></nz-avatar>
+                    <div class="comment__body">
+                      <div class="comment__meta">
+                        <strong>{{ c.authorName }}</strong>
+                        <span>{{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                        @if (c.edited) {
+                          <span class="comment__edited">(đã chỉnh sửa)</span>
+                        }
+                      </div>
+                      @if (editingCommentId() === c.id) {
+                        <textarea
+                          nz-input
+                          [(ngModel)]="editingContent"
+                          [ngModelOptions]="{ standalone: true }"
+                          maxlength="10000"
+                          [nzAutosize]="{ minRows: 2, maxRows: 8 }"
+                        ></textarea>
+                        <div class="comment__actions">
+                          <button
+                            nz-button
+                            nzType="primary"
+                            nzSize="small"
+                            type="button"
+                            (click)="saveComment(c)"
+                          >
+                            Lưu
+                          </button>
+                          <button
+                            nz-button
+                            nzSize="small"
+                            type="button"
+                            (click)="cancelEditComment()"
+                          >
+                            Huỷ
+                          </button>
+                        </div>
+                      } @else {
+                        <!-- Text thuần, Angular tự escape -->
+                        <div class="comment__content">{{ c.content }}</div>
+                        <div class="comment__actions">
+                          @if (canEditComment(c)) {
+                            <a (click)="startEditComment(c)">Sửa</a>
+                          }
+                          @if (canDeleteComment(c)) {
+                            <a
+                              class="danger"
+                              nz-popconfirm
+                              nzPopconfirmTitle="Xoá bình luận này?"
+                              nzOkText="Xoá"
+                              nzCancelText="Huỷ"
+                              (nzOnConfirm)="deleteComment(c)"
+                              >Xoá</a
+                            >
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                } @empty {
+                  @if (!commentsLoading()) {
+                    <p class="muted">Chưa có bình luận.</p>
+                  }
+                }
+              </nz-spin>
+
+              @if (!readonly()) {
+                <div class="comment-box">
+                  <textarea
+                    nz-input
+                    [(ngModel)]="newComment"
+                    [ngModelOptions]="{ standalone: true }"
+                    maxlength="10000"
+                    [nzAutosize]="{ minRows: 2, maxRows: 8 }"
+                    placeholder="Viết bình luận... (Ctrl+Enter để gửi)"
+                    (keydown.control.enter)="postComment()"
+                    (keydown.meta.enter)="postComment()"
+                  ></textarea>
+                  <button
+                    nz-button
+                    nzType="primary"
+                    type="button"
+                    [disabled]="!newComment.trim()"
+                    [nzLoading]="postingComment()"
+                    (click)="postComment()"
+                  >
+                    Gửi
+                  </button>
+                </div>
+              }
+            </nz-tab>
+
+            <!-- Tệp đính kèm -->
+            <nz-tab [nzTitle]="'Tệp đính kèm (' + attachments().length + ')'">
+              @if (!readonly()) {
+                <input #fileInput type="file" hidden (change)="onFileSelected($event)" />
+                <button
+                  nz-button
+                  type="button"
+                  class="upload-btn"
+                  [nzLoading]="uploading()"
+                  (click)="fileInput.click()"
+                >
+                  <span nz-icon nzType="upload"></span> Tải tệp lên (tối đa 10MB)
+                </button>
+              }
+              @for (a of attachments(); track a.id) {
+                <div class="attachment">
+                  <span nz-icon nzType="paper-clip" class="attachment__icon"></span>
+                  <div class="attachment__info">
+                    <a (click)="download(a)" class="attachment__name">{{ a.fileName }}</a>
+                    <span class="muted">
+                      {{ formatSize(a.fileSize) }} · {{ a.uploaderName }} ·
+                      {{ a.createdAt | date: 'dd/MM/yyyy HH:mm' }}
+                    </span>
+                  </div>
+                  <button
+                    nz-button
+                    nzType="text"
+                    type="button"
+                    nz-tooltip
+                    nzTooltipTitle="Tải xuống"
+                    (click)="download(a)"
+                  >
+                    <span nz-icon nzType="download"></span>
+                  </button>
+                  @if (canDeleteAttachment(a)) {
+                    <button
+                      nz-button
+                      nzType="text"
+                      nzDanger
+                      type="button"
+                      nz-popconfirm
+                      nzPopconfirmTitle="Xoá tệp này?"
+                      nzOkText="Xoá"
+                      nzCancelText="Huỷ"
+                      (nzOnConfirm)="deleteAttachment(a)"
+                    >
+                      <span nz-icon nzType="delete"></span>
+                    </button>
+                  }
+                </div>
+              } @empty {
+                <p class="muted">Chưa có tệp đính kèm.</p>
+              }
+            </nz-tab>
+
+            <!-- Lịch sử -->
+            <nz-tab nzTitle="Lịch sử">
+              @for (a of activities(); track a.id) {
+                <div class="activity">
+                  <strong>{{ a.actorName }}</strong> {{ describe(a) }}
+                  <span class="muted">· {{ a.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              } @empty {
+                @if (!activityLoading()) {
+                  <p class="muted">Chưa có hoạt động.</p>
+                }
+              }
+              @if (activityHasMore()) {
+                <button
+                  nz-button
+                  nzType="link"
+                  type="button"
+                  [nzLoading]="activityLoading()"
+                  (click)="loadMoreActivities()"
+                >
+                  Xem thêm
+                </button>
+              }
+            </nz-tab>
+          </nz-tabs>
+        </div>
+
+        <!-- ===== Cột thuộc tính ===== -->
+        <aside class="detail__side">
+          <div class="field">
+            <label>Trạng thái</label>
+            <nz-select
+              [ngModel]="issue.status"
+              [ngModelOptions]="{ standalone: true }"
+              [nzDisabled]="readonly()"
+              [nzLoading]="statusSaving()"
+              (ngModelChange)="changeStatus($event)"
+            >
+              @for (s of statuses; track s.key) {
+                <nz-option [nzValue]="s.key" [nzLabel]="s.title"></nz-option>
+              }
+            </nz-select>
+          </div>
+
+          <div class="field">
+            <label>Loại</label>
+            <nz-select formControlName="type">
+              @for (t of types; track t.key) {
+                <nz-option [nzValue]="t.key" [nzLabel]="t.title"></nz-option>
+              }
+            </nz-select>
+          </div>
+
+          @if (isSubTask()) {
+            <div class="field">
+              <label>Issue cha <span class="required">*</span></label>
+              <nz-select
+                formControlName="parentIssueId"
+                nzShowSearch
+                nzPlaceHolder="Chọn issue cha"
+              >
+                @for (p of parentOptions(); track p.id) {
+                  <nz-option [nzValue]="p.id" [nzLabel]="p.issueKey + ' · ' + p.title"></nz-option>
+                }
+              </nz-select>
+            </div>
+          }
+
+          <div class="field">
+            <label>Người thực hiện</label>
+            <nz-select
+              formControlName="assigneeId"
+              nzAllowClear
+              nzShowSearch
+              nzPlaceHolder="Chưa giao"
+            >
+              @for (m of ctx.members(); track m.userId) {
+                <nz-option [nzValue]="m.userId" [nzLabel]="m.userFullName"></nz-option>
+              }
+            </nz-select>
+          </div>
+
+          <div class="field">
+            <label>Độ ưu tiên</label>
+            <nz-select formControlName="priority" [nzCustomTemplate]="priorityTpl">
+              @for (p of priorities; track p.key) {
+                <nz-option nzCustomContent [nzValue]="p.key" [nzLabel]="p.title">
+                  <app-priority-icon [priority]="p.key" [showLabel]="true"></app-priority-icon>
+                </nz-option>
+              }
+            </nz-select>
+            <ng-template #priorityTpl let-selected>
+              <app-priority-icon
+                [priority]="selected.nzValue"
+                [showLabel]="true"
+              ></app-priority-icon>
+            </ng-template>
+          </div>
+
+          <div class="field">
+            <label>Sprint</label>
+            <nz-select formControlName="sprintId" nzAllowClear nzPlaceHolder="Backlog">
+              @for (s of sprintOptions(); track s.id) {
+                <nz-option [nzValue]="s.id" [nzLabel]="s.name"></nz-option>
+              }
+            </nz-select>
+          </div>
+
+          <div class="field">
+            <label>Epic</label>
+            <nz-select formControlName="epicId" nzAllowClear nzPlaceHolder="Không có">
+              @for (e of ctx.epics(); track e.id) {
+                <nz-option [nzValue]="e.id" [nzLabel]="e.name"></nz-option>
+              }
+            </nz-select>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label>Story points</label>
+              <nz-input-number
+                formControlName="storyPoints"
+                [nzMin]="0"
+                [nzMax]="999.9"
+                [nzStep]="0.5"
+                [nzPrecision]="1"
+                nzPlaceHolder="—"
+              ></nz-input-number>
+            </div>
+            <div class="field">
+              <label>Hạn</label>
+              <input nz-input type="date" formControlName="dueDate" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Nhãn</label>
+            <div class="labels">
+              @for (l of issue.labels; track l.id) {
+                <app-label-tag
+                  [label]="l"
+                  [closable]="!readonly()"
+                  (removed)="removeLabel($event)"
+                ></app-label-tag>
+              }
+            </div>
+            @if (!readonly() && availableLabels().length) {
+              <nz-select
+                class="labels__add"
+                nzSize="small"
+                nzShowSearch
+                nzPlaceHolder="+ Gắn nhãn"
+                [(ngModel)]="labelToAdd"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="addLabel($event)"
+              >
+                @for (l of availableLabels(); track l.id) {
+                  <nz-option [nzValue]="l.id" [nzLabel]="l.name"></nz-option>
+                }
+              </nz-select>
+            }
+          </div>
+
+          <div class="field">
+            <label>Người theo dõi ({{ watchers().length }})</label>
+            <div class="watchers">
+              @for (w of watchers(); track w.userId) {
+                <nz-avatar
+                  nzSize="small"
+                  [nzSrc]="w.avatarUrl ?? undefined"
+                  [nzText]="w.fullName.charAt(0)"
+                  nz-tooltip
+                  [nzTooltipTitle]="w.fullName"
+                ></nz-avatar>
+              }
+            </div>
+          </div>
+
+          <div class="meta">
+            <div>
+              Người tạo: <strong>{{ issue.reporterName }}</strong>
+            </div>
+            <div>Tạo lúc: {{ issue.createdAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+            <div>Cập nhật: {{ issue.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+        </aside>
+        <button type="submit" hidden></button>
+      </form>
+    }
+  </ng-container>
+</nz-drawer>
+
+<ng-template #drawerTitle>
+  @if (issue(); as issue) {
+    <div class="drawer-title">
+      <app-issue-type-icon [type]="issue.type"></app-issue-type-icon>
+      <span>{{ issue.issueKey }}</span>
+      <app-status-tag [status]="issue.status"></app-status-tag>
+    </div>
+  }
+</ng-template>
+
+<ng-template #drawerExtra>
+  <div class="drawer-extra">
+    <button nz-button type="button" (click)="toggleWatch()">
+      <span nz-icon [nzType]="watching() ? 'eye-invisible' : 'eye'"></span>
+      {{ watching() ? 'Bỏ theo dõi' : 'Theo dõi' }}
+    </button>
+    @if (!readonly()) {
+      <button
+        nz-button
+        nzDanger
+        type="button"
+        nz-popconfirm
+        nzPopconfirmTitle="Xoá issue này? Comment, tệp đính kèm cũng bị xoá."
+        nzPopconfirmPlacement="bottomRight"
+        nzOkText="Xoá"
+        nzCancelText="Huỷ"
+        (nzOnConfirm)="deleteIssue()"
+      >
+        <span nz-icon nzType="delete"></span>
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #drawerFooter>
+  <div class="drawer-footer">
+    <span class="muted">Có thay đổi chưa lưu</span>
+    <button nz-button type="button" (click)="discardChanges()">Huỷ</button>
+    <button nz-button nzType="primary" type="button" [nzLoading]="saving()" (click)="save()">
+      Lưu thay đổi
+    </button>
+  </div>
+</ng-template>

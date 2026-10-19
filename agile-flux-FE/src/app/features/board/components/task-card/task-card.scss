@@ -1,0 +1,123 @@
+.af-kanban-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #eef0f3;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+
+  &:hover {
+    border-color: #dfe3ea;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.995);
+  }
+
+  &--done &__title {
+    color: #8a8f98;
+    text-decoration: line-through;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__key {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8a8f98;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  &__epic {
+    padding: 0 6px;
+    border: 1px solid;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  &__points {
+    min-width: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: #eef0f3;
+    color: #545a66;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+  }
+
+  &__date.af-kanban-card__date--overdue {
+    color: #d92d20;
+    font-weight: 600;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #16181d;
+    line-height: 1.4;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__avatar {
+    flex-shrink: 0;
+  }
+
+  &__date {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #8a8f98;
+    white-space: nowrap;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__done {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    color: #2ecc71;
+  }
+}
+
+/* Trạng thái khi thẻ đang được kéo (CDK Drag & Drop) */
+.cdk-drag-preview {
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.18);
+  border-radius: 10px;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.35;
+}
+
+.cdk-drag-animating {
+  transition: transform 0.2s cubic-bezier(0, 0, 0.2, 1);
+}

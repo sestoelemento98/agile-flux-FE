@@ -1,0 +1,43 @@
+<div class="af-kanban-column" [ngStyle]="columnStyle">
+  <div class="af-kanban-column__header">
+    <span class="af-kanban-column__dot"></span>
+    <span class="af-kanban-column__title">{{ column.title }}</span>
+    <span class="af-kanban-column__count">{{ column.issues.length }}</span>
+  </div>
+
+  <div
+    class="af-kanban-column__list"
+    cdkDropList
+    [id]="dropListId"
+    [cdkDropListData]="column.issues"
+    [cdkDropListConnectedTo]="connectedTo"
+    [cdkDropListDisabled]="readonly"
+    (cdkDropListDropped)="dropped.emit($event)"
+  >
+    @for (issue of column.issues; track issue.id) {
+      <app-task-card
+        cdkDrag
+        [cdkDragData]="issue"
+        class="af-kanban-column__item"
+        [issue]="issue"
+        [epic]="issue.epicId ? epicsById.get(issue.epicId) : undefined"
+        (cardClick)="cardClick.emit($event)"
+      ></app-task-card>
+    } @empty {
+      <div class="af-kanban-column__empty">Không có issue</div>
+    }
+  </div>
+
+  @if (!readonly) {
+    <button
+      class="af-kanban-column__add"
+      nz-button
+      nzType="dashed"
+      nzBlock
+      (click)="addCard.emit()"
+    >
+      <span nz-icon nzType="plus"></span>
+      <span>Thêm issue</span>
+    </button>
+  }
+</div>

@@ -1,0 +1,103 @@
+<header class="af-topbar">
+  <!-- Vùng trái: menu toggle + tên dự án -->
+  <div class="af-topbar__left">
+    <button
+      class="af-topbar__icon-btn"
+      nz-button
+      nzType="text"
+      (click)="toggleSidebar.emit()"
+      aria-label="Đóng/mở sidebar"
+    >
+      <span nz-icon nzType="menu"></span>
+    </button>
+
+    <a class="af-topbar__project" routerLink="/projects" nz-tooltip nzTooltipTitle="Đổi dự án">
+      @if (projectKey) {
+        <span class="af-topbar__project-key">{{ projectKey }}</span>
+      }
+      <span class="af-topbar__project-name">{{ projectName }}</span>
+      <span nz-icon nzType="down"></span>
+    </a>
+    @if (archived) {
+      <nz-tag nzColor="default">Đã archive · chỉ đọc</nz-tag>
+    }
+  </div>
+
+  <!-- Vùng giữa: avatar thành viên -->
+  @if (showProjectTools) {
+    <div class="af-topbar__members">
+      <span nz-icon nzType="team" class="af-topbar__members-icon"></span>
+      <span class="af-topbar__members-count">{{ members.length }} thành viên</span>
+      <div class="af-topbar__avatars">
+        @for (member of visibleMembers; track member.id) {
+          <nz-avatar
+            class="af-topbar__avatar"
+            [nzSrc]="member.avatarUrl"
+            [nzText]="!member.avatarUrl ? member.name.charAt(0) : undefined"
+            nzSize="small"
+            nz-tooltip
+            [nzTooltipTitle]="member.name"
+          ></nz-avatar>
+        }
+        @if (extraMembersCount > 0) {
+          <nz-avatar
+            class="af-topbar__avatar af-topbar__avatar--extra"
+            nzSize="small"
+            [nzText]="'+' + extraMembersCount"
+          ></nz-avatar>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Vùng phải: search, user -->
+  <div class="af-topbar__right">
+    @if (showProjectTools) {
+      <nz-input-group class="af-topbar__search" [nzPrefix]="searchPrefix" [nzSuffix]="searchSuffix">
+        <input
+          type="text"
+          nz-input
+          [placeholder]="searchPlaceholder"
+          [ngModel]="searchValue"
+          (ngModelChange)="onSearchInput($event)"
+        />
+      </nz-input-group>
+      <ng-template #searchPrefix>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+      <ng-template #searchSuffix>
+        @if (searchValue) {
+          <span
+            nz-icon
+            nzType="close-circle"
+            nzTheme="fill"
+            class="af-topbar__clear"
+            (click)="onSearchInput('')"
+          ></span>
+        }
+      </ng-template>
+    }
+
+    <div class="af-topbar__user" nz-dropdown [nzDropdownMenu]="userMenu" nzPlacement="bottomRight">
+      <nz-avatar
+        class="af-topbar__user-avatar"
+        [nzSrc]="currentUser.avatarUrl"
+        [nzText]="!currentUser.avatarUrl ? currentUser.name.charAt(0) : undefined"
+        nzSize="default"
+      ></nz-avatar>
+      <span class="af-topbar__user-name">{{ currentUser.name }}</span>
+      <span nz-icon nzType="down"></span>
+    </div>
+    <nz-dropdown-menu #userMenu="nzDropdownMenu">
+      <ul nz-menu>
+        <li nz-menu-item (click)="profileClick.emit()">
+          <span nz-icon nzType="user"></span>&nbsp; Hồ sơ cá nhân
+        </li>
+        <li nz-menu-divider></li>
+        <li nz-menu-item nzDanger (click)="logoutClick.emit()">
+          <span nz-icon nzType="logout"></span>&nbsp; Đăng xuất
+        </li>
+      </ul>
+    </nz-dropdown-menu>
+  </div>
+</header>

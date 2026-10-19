@@ -1,0 +1,119 @@
+<div class="page">
+  <div class="page__head">
+    <div>
+      <h2>Dự án của tôi</h2>
+      <p class="muted">Các dự án bạn sở hữu hoặc là thành viên.</p>
+    </div>
+    <button nz-button nzType="primary" (click)="openCreate()">
+      <span nz-icon nzType="plus"></span> Tạo dự án
+    </button>
+  </div>
+
+  <div class="page__toolbar">
+    <nz-segmented
+      [nzOptions]="tabOptions()"
+      [ngModel]="tab()"
+      (ngModelChange)="setTab($event)"
+    ></nz-segmented>
+    <input
+      nz-input
+      class="page__search"
+      placeholder="Tìm theo tên hoặc key..."
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+    />
+  </div>
+
+  <nz-spin [nzSpinning]="loading()">
+    <div class="grid">
+      @for (p of visible(); track p.id) {
+        <div class="card" [class.card--archived]="p.archived" (click)="open(p)">
+          <div class="card__head">
+            <span class="card__key">{{ p.key }}</span>
+            <span class="card__name">{{ p.name }}</span>
+            @if (p.archived) {
+              <nz-tag>Archive</nz-tag>
+            }
+          </div>
+          <p class="card__desc">{{ p.description || 'Chưa có mô tả' }}</p>
+          <div class="card__meta">
+            <span><span nz-icon nzType="user"></span> {{ p.ownerName }}</span>
+            @if (p.leaderName) {
+              <span><span nz-icon nzType="flag"></span> Lead: {{ p.leaderName }}</span>
+            }
+            <span
+              ><span nz-icon nzType="calendar"></span> {{ p.createdAt | date: 'dd/MM/yyyy' }}</span
+            >
+          </div>
+          @if (p.archived) {
+            <button nz-button nzSize="small" class="card__restore" (click)="unarchive(p, $event)">
+              <span nz-icon nzType="rollback"></span> Khôi phục
+            </button>
+          }
+        </div>
+      }
+    </div>
+    @if (!loading() && !visible().length) {
+      <nz-empty
+        [nzNotFoundContent]="
+          tab() === 'active'
+            ? 'Chưa có dự án nào — hãy tạo dự án đầu tiên'
+            : 'Không có dự án đã archive'
+        "
+      ></nz-empty>
+    }
+  </nz-spin>
+</div>
+
+<nz-modal
+  [nzVisible]="createOpen()"
+  nzTitle="Tạo dự án"
+  nzOkText="Tạo"
+  nzCancelText="Huỷ"
+  [nzOkLoading]="creating()"
+  (nzOnOk)="create()"
+  (nzOnCancel)="createOpen.set(false)"
+>
+  <ng-container *nzModalContent>
+    <form nz-form nzLayout="vertical" [formGroup]="form" (ngSubmit)="create()">
+      <nz-form-item>
+        <nz-form-label nzRequired>Tên dự án</nz-form-label>
+        <nz-form-control [nzErrorTip]="nameErr">
+          <input
+            nz-input
+            formControlName="name"
+            maxlength="255"
+            (blur)="suggestKey()"
+            placeholder="Agile Flux"
+          />
+          <ng-template #nameErr let-c>{{
+            c.errors?.server || 'Vui lòng nhập tên (tối đa 255 ký tự)'
+          }}</ng-template>
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label nzRequired>Key</nz-form-label>
+        <nz-form-control
+          [nzErrorTip]="keyErr"
+          nzExtra="2–10 ký tự CHỮ HOA/số, bắt đầu bằng chữ. Dùng làm tiền tố mã issue (vd AF-1), không sửa được sau khi tạo."
+        >
+          <input nz-input formControlName="key" maxlength="10" placeholder="AF" />
+          <ng-template #keyErr let-c>{{
+            c.errors?.server || 'Key không hợp lệ (vd: AF, CRM2)'
+          }}</ng-template>
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label>Mô tả</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            formControlName="description"
+            [nzAutosize]="{ minRows: 2, maxRows: 6 }"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+      <button type="submit" hidden></button>
+    </form>
+  </ng-container>
+</nz-modal>

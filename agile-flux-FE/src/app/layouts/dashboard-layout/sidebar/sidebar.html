@@ -1,0 +1,50 @@
+<aside class="af-sidebar" [class.af-sidebar--collapsed]="collapsed">
+  <!-- Logo + tên thương hiệu -->
+  <div class="af-sidebar__brand">
+    <div class="af-sidebar__logo">
+      <span nz-icon nzType="thunderbolt" nzTheme="fill"></span>
+    </div>
+    <span class="af-sidebar__brand-name" *ngIf="!collapsed">{{ brandName }}</span>
+  </div>
+
+  <!-- Menu chính -->
+  <ul nz-menu nzMode="inline" class="af-sidebar__menu" [nzInlineCollapsed]="collapsed">
+    <li
+      nz-menu-item
+      *ngFor="let item of menuItems"
+      [routerLink]="item.routerLink"
+      nzMatchRouter
+      nzMatchRouterExact
+      nz-tooltip
+      [nzTooltipTitle]="collapsed ? item.label : null"
+      nzTooltipPlacement="right"
+      (click)="onMenuItemClick(item)"
+    >
+      <span nz-icon [nzType]="item.icon"></span>
+      <span class="af-sidebar__menu-label">{{ item.label }}</span>
+      <span class="af-sidebar__menu-badge" *ngIf="item.badge">{{ item.badge }}</span>
+    </li>
+  </ul>
+
+  <!-- Widget tiến độ tổng thể -->
+  <div class="af-sidebar__progress" *ngIf="showProgress && !collapsed" (click)="onProgressClick()">
+    <div class="af-sidebar__progress-header">
+      <span>Tiến độ tổng thể</span>
+      <span nz-icon nzType="right"></span>
+    </div>
+
+    <div class="af-sidebar__progress-circle">
+      <nz-progress
+        [nzType]="'circle'"
+        [nzPercent]="progress.percent"
+        [nzWidth]="88"
+        [nzStrokeColor]="{ '0%': '#4f8cff', '100%': '#2f6bff' }"
+        nzStrokeLinecap="round"
+        [nzFormat]="progressFormat"
+      ></nz-progress>
+    </div>
+
+    <div class="af-sidebar__progress-label">{{ progress.label }}</div>
+    <div class="af-sidebar__progress-sublabel">{{ progress.subLabel }}</div>
+  </div>
+</aside>

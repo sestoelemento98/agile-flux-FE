@@ -1,0 +1,280 @@
+<div class="af-page-head">
+  <div>
+    <h2>Backlog & Sprint</h2>
+    <p>Lên kế hoạch sprint, chuyển issue giữa backlog và sprint.</p>
+  </div>
+  @if (!ctx.readonly()) {
+    <div class="af-page-actions">
+      <button nz-button (click)="openCreateSprint()">
+        <span nz-icon nzType="plus"></span> Tạo sprint
+      </button>
+      <button nz-button nzType="primary" (click)="addIssue(null)">
+        <span nz-icon nzType="plus"></span> Thêm issue
+      </button>
+    </div>
+  }
+</div>
+
+@if (ctx.readonly()) {
+  <nz-alert
+    class="af-readonly-banner"
+    nzType="info"
+    nzShowIcon
+    nzMessage="Dự án đã archive — chỉ xem."
+  ></nz-alert>
+}
+
+<!-- Sprint đang chạy / kế hoạch -->
+@for (g of openGroups(); track g.sprint.id) {
+  <section class="af-panel sprint" [class.sprint--active]="g.sprint.status === 'active'">
+    <ng-container *ngTemplateOutlet="sprintHead; context: { $implicit: g }"></ng-container>
+    <ng-container
+      *ngTemplateOutlet="issueList; context: { $implicit: g.issues, sprintId: g.sprint.id }"
+    ></ng-container>
+  </section>
+}
+
+<!-- Backlog -->
+<section class="af-panel sprint">
+  <div class="sprint__head">
+    <div class="sprint__title">
+      <span nz-icon nzType="inbox"></span>
+      <strong>Backlog</strong>
+      <span class="af-muted">{{ backlog().length }} issue · {{ backlogPoints() }} điểm</span>
+    </div>
+    @if (!ctx.readonly()) {
+      <button nz-button nzSize="small" nzType="text" (click)="addIssue(null)">
+        <span nz-icon nzType="plus"></span> Thêm
+      </button>
+    }
+  </div>
+  <ng-container
+    *ngTemplateOutlet="issueList; context: { $implicit: backlog(), sprintId: null }"
+  ></ng-container>
+</section>
+
+<!-- Sprint đã đóng -->
+@if (closedGroups().length) {
+  <nz-collapse class="closed" nzGhost>
+    <nz-collapse-panel [nzHeader]="'Sprint đã đóng (' + closedGroups().length + ')'">
+      @for (g of closedGroups(); track g.sprint.id) {
+        <section class="af-panel sprint">
+          <ng-container *ngTemplateOutlet="sprintHead; context: { $implicit: g }"></ng-container>
+          <ng-container
+            *ngTemplateOutlet="issueList; context: { $implicit: g.issues, sprintId: g.sprint.id }"
+          ></ng-container>
+        </section>
+      }
+    </nz-collapse-panel>
+  </nz-collapse>
+}
+
+<!-- ===== Template: đầu sprint ===== -->
+<ng-template #sprintHead let-g>
+  <div class="sprint__head">
+    <div class="sprint__title">
+      <strong>{{ g.sprint.name }}</strong>
+      @let meta = sprintMeta(g.sprint.status);
+      <nz-tag [nzColor]="meta.color">{{ meta.title }}</nz-tag>
+      @if (g.sprint.startDate || g.sprint.endDate) {
+        <span class="af-muted"
+          >{{ formatDate(g.sprint.startDate) || '?' }} →
+          {{ formatDate(g.sprint.endDate) || '?' }}</span
+        >
+      }
+      <span class="af-muted"
+        >{{ g.issues.length }} issue · {{ g.done }} xong · {{ g.points }} điểm</span
+      >
+    </div>
+    @if (!ctx.readonly()) {
+      <div class="af-page-actions">
+        @if (g.sprint.status === 'planned') {
+          <button
+            nz-button
+            nzSize="small"
+            nzType="primary"
+            [disabled]="!!ctx.activeSprint()"
+            nz-tooltip
+            [nzTooltipTitle]="ctx.activeSprint() ? 'Đã có sprint đang chạy' : null"
+            (click)="startSprint(g.sprint)"
+          >
+            <span nz-icon nzType="play-circle"></span> Bắt đầu
+          </button>
+        }
+        @if (g.sprint.status === 'active') {
+          <button nz-button nzSize="small" nzType="primary" (click)="openComplete(g)">
+            <span nz-icon nzType="check"></span> Hoàn thành
+          </button>
+        }
+        <button
+          nz-button
+          nzSize="small"
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="sprintMenu"
+          nzPlacement="bottomRight"
+        >
+          <span nz-icon nzType="more"></span>
+        </button>
+        <nz-dropdown-menu #sprintMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="openEditSprint(g.sprint)">
+              <span nz-icon nzType="edit"></span>&nbsp; Sửa
+            </li>
+            @if (g.sprint.status === 'planned' || g.sprint.status === 'active') {
+              <li nz-menu-item (click)="addIssue(g.sprint.id)">
+                <span nz-icon nzType="plus"></span>&nbsp; Thêm issue
+              </li>
+              <li nz-menu-item (click)="cancelSprint(g.sprint)">
+                <span nz-icon nzType="stop"></span>&nbsp; Huỷ sprint
+              </li>
+            }
+            <li nz-menu-item nzDanger (click)="deleteSprint(g.sprint)">
+              <span nz-icon nzType="delete"></span>&nbsp; Xoá
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+    }
+  </div>
+  @if (g.sprint.goal) {
+    <p class="sprint__goal"><span nz-icon nzType="aim"></span> {{ g.sprint.goal }}</p>
+  }
+</ng-template>
+
+<!-- ===== Template: danh sách issue ===== -->
+<ng-template #issueList let-issues let-sprintId="sprintId">
+  <div class="rows">
+    @for (i of issues; track i.id) {
+      <div class="row" (click)="openIssue(i)">
+        <app-issue-type-icon [type]="i.type"></app-issue-type-icon>
+        <span class="row__key">{{ i.issueKey }}</span>
+        <span class="row__title">{{ i.title }}</span>
+        <span class="row__tags">
+          @if (i.epicId && epicsById().get(i.epicId); as epic) {
+            <span class="row__epic" [style.color]="epic.color" [style.borderColor]="epic.color">{{
+              epic.name
+            }}</span>
+          }
+          @for (l of i.labels; track l.id) {
+            <app-label-tag [label]="l"></app-label-tag>
+          }
+        </span>
+        <span class="row__assignee">{{ i.assigneeName ?? '—' }}</span>
+        <span class="row__points">{{ i.storyPoints ?? '' }}</span>
+        <app-priority-icon [priority]="i.priority"></app-priority-icon>
+        <app-status-tag [status]="i.status"></app-status-tag>
+        @if (!ctx.readonly()) {
+          <button
+            nz-button
+            nzType="text"
+            nzSize="small"
+            nz-dropdown
+            [nzDropdownMenu]="moveMenu"
+            nzPlacement="bottomRight"
+            nz-tooltip
+            nzTooltipTitle="Chuyển tới"
+            (click)="$event.stopPropagation()"
+          >
+            <span nz-icon nzType="swap"></span>
+          </button>
+          <nz-dropdown-menu #moveMenu="nzDropdownMenu">
+            <ul nz-menu>
+              <li nz-menu-item [nzDisabled]="sprintId === null" (click)="moveIssue(i, null)">
+                <span nz-icon nzType="inbox"></span>&nbsp; Backlog
+              </li>
+              @for (s of ctx.openSprints(); track s.id) {
+                <li nz-menu-item [nzDisabled]="sprintId === s.id" (click)="moveIssue(i, s.id)">
+                  <span nz-icon nzType="rocket"></span>&nbsp; {{ s.name }}
+                </li>
+              }
+            </ul>
+          </nz-dropdown-menu>
+        }
+      </div>
+    } @empty {
+      <div class="rows__empty">Không có issue</div>
+    }
+  </div>
+</ng-template>
+
+<!-- ===== Modal tạo/sửa sprint ===== -->
+<nz-modal
+  [nzVisible]="sprintModalOpen()"
+  [nzTitle]="editingSprint() ? 'Sửa sprint' : 'Tạo sprint'"
+  [nzOkText]="editingSprint() ? 'Lưu' : 'Tạo'"
+  nzCancelText="Huỷ"
+  [nzOkLoading]="savingSprint()"
+  (nzOnOk)="saveSprint()"
+  (nzOnCancel)="sprintModalOpen.set(false)"
+>
+  <ng-container *nzModalContent>
+    <form nz-form nzLayout="vertical" [formGroup]="sprintForm" (ngSubmit)="saveSprint()">
+      <nz-form-item>
+        <nz-form-label nzRequired>Tên sprint</nz-form-label>
+        <nz-form-control nzErrorTip="Vui lòng nhập tên">
+          <input nz-input formControlName="name" maxlength="255" />
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label>Mục tiêu</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            formControlName="goal"
+            [nzAutosize]="{ minRows: 2, maxRows: 5 }"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+      <div class="dates">
+        <nz-form-item>
+          <nz-form-label>Ngày bắt đầu</nz-form-label>
+          <nz-form-control>
+            <input nz-input type="date" formControlName="startDate" />
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label>Ngày kết thúc</nz-form-label>
+          <nz-form-control>
+            <input nz-input type="date" formControlName="endDate" />
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+      @if (sprintForm.hasError('dateRange')) {
+        <div class="form-error">Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.</div>
+      }
+      @if (editingSprint()) {
+        <p class="af-muted">Để trống = giữ nguyên giá trị cũ (BE chưa hỗ trợ xoá mục tiêu/ngày).</p>
+      }
+      <button type="submit" hidden></button>
+    </form>
+  </ng-container>
+</nz-modal>
+
+<!-- ===== Modal hoàn thành sprint ===== -->
+<nz-modal
+  [nzVisible]="!!completing()"
+  [nzTitle]="'Hoàn thành ' + (completing()?.sprint?.name ?? '')"
+  nzOkText="Hoàn thành sprint"
+  nzCancelText="Huỷ"
+  [nzOkLoading]="completingBusy()"
+  (nzOnOk)="confirmComplete()"
+  (nzOnCancel)="completing.set(null)"
+>
+  <ng-container *nzModalContent>
+    @if (completing(); as g) {
+      <p>
+        <strong>{{ g.done }}</strong> / {{ g.issues.length }} issue đã xong.
+      </p>
+      @if (unfinished().length) {
+        <p>{{ unfinished().length }} issue chưa xong sẽ được chuyển tới:</p>
+        <nz-select [(ngModel)]="moveUnfinishedTo" class="complete-target">
+          <nz-option [nzValue]="null" nzLabel="Backlog"></nz-option>
+          @for (s of completeTargets(); track s.id) {
+            <nz-option [nzValue]="s.id" [nzLabel]="s.name"></nz-option>
+          }
+        </nz-select>
+      }
+    }
+  </ng-container>
+</nz-modal>

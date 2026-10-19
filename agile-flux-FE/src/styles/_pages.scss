@@ -1,0 +1,62 @@
+// Khung chung cho các trang bên trong project (backlog, epic, nhãn, thành viên...)
+.af-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #16181d;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #8a8f98;
+  }
+}
+
+.af-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.af-panel {
+  background: #fff;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.af-muted {
+  color: #8a8f98;
+  font-size: 12px;
+}
+
+.af-color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.af-color-input {
+  width: 48px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.af-readonly-banner {
+  margin-bottom: 16px;
+}

@@ -1,0 +1,50 @@
+.af-kanban-board {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  &__sprint-range {
+    font-size: 12px;
+    color: #8a8f98;
+  }
+
+  &__filter {
+    width: 160px;
+  }
+
+  &__live {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #8a8f98;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__add-task {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  &__columns {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex: 1;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+}

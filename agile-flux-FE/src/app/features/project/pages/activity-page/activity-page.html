@@ -1,0 +1,34 @@
+<div class="af-page-head">
+  <div>
+    <h2>Hoạt động</h2>
+    <p>Lịch sử thay đổi trong dự án, mới nhất trước.</p>
+  </div>
+  <button nz-button (click)="reload()"><span nz-icon nzType="reload"></span> Làm mới</button>
+</div>
+
+<div class="af-panel">
+  <nz-spin [nzSpinning]="loading() && !items().length">
+    @if (items().length) {
+      <nz-timeline>
+        @for (a of items(); track a.id) {
+          <nz-timeline-item [nzColor]="color(a.action)">
+            <strong>{{ a.actorName }}</strong>
+            {{ describe(a) }}
+            @if (a.issueKey) {
+              <a class="issue-link" (click)="openIssue(a)">{{ a.issueKey }}</a>
+            }
+            <div class="af-muted">{{ a.createdAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+          </nz-timeline-item>
+        }
+      </nz-timeline>
+    } @else if (!loading()) {
+      <nz-empty nzNotFoundContent="Chưa có hoạt động"></nz-empty>
+    }
+  </nz-spin>
+
+  @if (hasMore()) {
+    <div class="more">
+      <button nz-button [nzLoading]="loading()" (click)="loadMore()">Xem thêm</button>
+    </div>
+  }
+</div>

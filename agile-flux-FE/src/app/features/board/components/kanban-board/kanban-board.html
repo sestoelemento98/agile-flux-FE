@@ -1,0 +1,67 @@
+<div class="af-kanban-board">
+  <div class="af-kanban-board__toolbar">
+    <nz-segmented
+      [nzOptions]="scopeOptions()"
+      [ngModel]="scope()"
+      (ngModelChange)="setScope($event)"
+    ></nz-segmented>
+    @if (scope() === 'active' && sprintRange()) {
+      <span class="af-kanban-board__sprint-range">{{ sprintRange() }}</span>
+    }
+
+    <nz-select
+      class="af-kanban-board__filter"
+      [ngModel]="assigneeFilter()"
+      (ngModelChange)="assigneeFilter.set($event)"
+      nzShowSearch
+    >
+      <nz-option nzValue="all" nzLabel="Mọi người"></nz-option>
+      <nz-option nzValue="me" nzLabel="Của tôi"></nz-option>
+      <nz-option nzValue="none" nzLabel="Chưa giao"></nz-option>
+      @for (m of ctx.members(); track m.userId) {
+        <nz-option [nzValue]="m.userId" [nzLabel]="m.userFullName"></nz-option>
+      }
+    </nz-select>
+
+    <nz-select
+      class="af-kanban-board__filter"
+      [ngModel]="typeFilter()"
+      (ngModelChange)="typeFilter.set($event)"
+      nzAllowClear
+      nzPlaceHolder="Mọi loại"
+    >
+      @for (t of types; track t.key) {
+        <nz-option [nzValue]="t.key" [nzLabel]="t.title"></nz-option>
+      }
+    </nz-select>
+
+    <span class="af-kanban-board__spacer"></span>
+
+    <span class="af-kanban-board__live">
+      <nz-badge [nzStatus]="isConnected() ? 'success' : 'default'"></nz-badge>
+      {{ isConnected() ? 'Realtime' : 'Đang kết nối...' }}
+    </span>
+
+    @if (!ctx.readonly()) {
+      <button class="af-kanban-board__add-task" nz-button nzType="primary" (click)="addIssue()">
+        <span nz-icon nzType="plus"></span>
+        <span>Thêm issue</span>
+      </button>
+    }
+  </div>
+
+  <div class="af-kanban-board__columns">
+    @for (column of columns(); track column.key) {
+      <app-kanban-column
+        [column]="column"
+        [dropListId]="dropListId(column.key)"
+        [connectedTo]="connectedListIds()"
+        [readonly]="ctx.readonly()"
+        [epicsById]="epicsById()"
+        (cardClick)="onCardClick($event)"
+        (addCard)="addIssue(column.key)"
+        (dropped)="onCardDrop($event, column)"
+      ></app-kanban-column>
+    }
+  </div>
+</div>
