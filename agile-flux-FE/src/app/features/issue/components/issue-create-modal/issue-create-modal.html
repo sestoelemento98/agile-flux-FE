@@ -78,8 +78,23 @@
               nzShowSearch
               nzPlaceHolder="Chưa giao"
             >
-              @for (m of ctx.members(); track m.userId) {
-                <nz-option [nzValue]="m.userId" [nzLabel]="m.userFullName"></nz-option>
+              <nz-option-group nzLabel="Thành viên project">
+                @for (m of ctx.members(); track m.userId) {
+                  <nz-option [nzValue]="m.userId" [nzLabel]="m.userFullName"></nz-option>
+                }
+              </nz-option-group>
+              @if (nonMembers().length) {
+                <nz-option-group
+                  [nzLabel]="ctx.isAdmin() ? 'Người khác (sẽ được thêm vào project)' : 'Người khác (chỉ admin mới giao được)'"
+                >
+                  @for (u of nonMembers(); track u.id) {
+                    <nz-option
+                      [nzValue]="u.id"
+                      [nzLabel]="u.fullName"
+                      [nzDisabled]="!ctx.isAdmin()"
+                    ></nz-option>
+                  }
+                </nz-option-group>
               }
             </nz-select>
           </nz-form-control>

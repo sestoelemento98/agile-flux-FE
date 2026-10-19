@@ -22,6 +22,17 @@ export class UserApi {
     return this.http.put<void>(`${this.baseUrl}/me/password`, body);
   }
 
+  /** Mục 6.1.1 — multipart field "file". Không tự set Content-Type (để trình duyệt thêm boundary). */
+  uploadAvatar(file: File): Observable<User> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.http.post<User>(`${this.baseUrl}/me/avatar`, fd);
+  }
+
+  removeAvatar(): Observable<User> {
+    return this.http.delete<User>(`${this.baseUrl}/me/avatar`);
+  }
+
   /** Mọi user đang active, sắp theo fullName. */
   list(): Observable<User[]> {
     return this.http.get<User[]>(this.baseUrl);

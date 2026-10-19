@@ -18,6 +18,12 @@ import { AuthService } from '../../../../core/auth/auth';
 import { UserApi } from '../../../../core/api/user-api';
 import { UpdateProfileRequest } from '../../../../core/models/api.models';
 import { apiErrorMessage, applyFieldErrors } from '../../../../core/utils/api-error';
+import {
+  AVATAR_ACCEPT,
+  AvatarSrcPipe,
+  MAX_AVATAR_SIZE,
+  isUploadedAvatar,
+} from '../../../../core/utils/avatar';
 
 function samePassword(group: AbstractControl): ValidationErrors | null {
   return group.get('newPassword')?.value === group.get('confirm')?.value
@@ -29,6 +35,7 @@ function samePassword(group: AbstractControl): ValidationErrors | null {
   selector: 'app-profile-page',
   imports: [
     DatePipe,
+    AvatarSrcPipe,
     ReactiveFormsModule,
     NzFormModule,
     NzInputModule,
@@ -50,6 +57,13 @@ function samePassword(group: AbstractControl): ValidationErrors | null {
     }
     .who h3 {
       margin: 0;
+    }
+    .avatar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
     }
     h3 {
       margin: 0 0 16px;
@@ -78,10 +92,15 @@ export class ProfilePageComponent {
 
   savingProfile = signal(false);
   savingPassword = signal(false);
+  avatarBusy = signal(false);
+
+  readonly avatarAccept = AVATAR_ACCEPT;
+  readonly isUploadedAvatar = isUploadedAvatar;
 
   profileForm = this.fb.group({
     fullName: ['', [Validators.required, Validators.maxLength(255)]],
-    avatarUrl: [''],
+    // Chỉ cho URL ảnh ngoài; ảnh từ máy upload qua POST /users/me/avatar
+    avatarUrl: ['', Validators.pattern(/^https?:\/\/\S+$/)],
   });
 
   passwordForm = this.fb.group(
@@ -97,7 +116,10 @@ export class ProfilePageComponent {
     effect(() => {
       const u = this.auth.user();
       untracked(() => {
-        if (u) this.profileForm.reset({ fullName: u.fullName, avatarUrl: u.avatarUrl ?? '' });
+        if (!u) return;
+        // Ảnh đã upload ("/api/avatars/...") không đưa vào ô URL — gửi lại sẽ bị 400.
+        const externalUrl = u.avatarUrl && !isUploadedAvatar(u.avatarUrl) ? u.avatarUrl : '';
+        this.profileForm.reset({ fullName: u.fullName, avatarUrl: externalUrl });
       });
     });
   }
@@ -111,9 +133,10 @@ export class ProfilePageComponent {
       return;
     }
     const v = this.profileForm.getRawValue();
-    // Field null/không gửi = giữ nguyên. BE không có API upload avatar, chỉ nhận URL.
+    // Field null/không gửi = giữ nguyên. Ô URL trống = giữ ảnh hiện tại (xoá ảnh dùng nút riêng).
     const body: UpdateProfileRequest = { fullName: v.fullName.trim() };
-    if (v.avatarUrl.trim()) body.avatarUrl = v.avatarUrl.trim();
+    const url = v.avatarUrl.trim();
+    if (url && url !== this.auth.user()?.avatarUrl) body.avatarUrl = url;
     this.savingProfile.set(true);
     this.api.updateMe(body).subscribe({
       next: (u) => {
@@ -124,6 +147,52 @@ export class ProfilePageComponent {
       error: (err) => {
         this.savingProfile.set(false);
         if (!applyFieldErrors(this.profileForm, err)) this.message.error(apiErrorMessage(err));
+      },
+    });
+  }
+
+  onAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // cho phép chọn lại đúng file đó lần sau
+    if (!file) return;
+    if (!AVATAR_ACCEPT.split(',').includes(file.type)) {
+      this.message.error('Chỉ nhận ảnh PNG, JPEG, GIF hoặc WEBP');
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      this.message.error('Ảnh đại diện tối đa 2MB');
+      return;
+    }
+    if (file.size === 0) {
+      this.message.error('File rỗng');
+      return;
+    }
+    this.avatarBusy.set(true);
+    this.api.uploadAvatar(file).subscribe({
+      next: (u) => {
+        this.avatarBusy.set(false);
+        this.auth.setUser(u);
+        this.message.success('Đã cập nhật ảnh đại diện');
+      },
+      error: (err) => {
+        this.avatarBusy.set(false);
+        this.message.error(apiErrorMessage(err));
+      },
+    });
+  }
+
+  removeAvatar(): void {
+    this.avatarBusy.set(true);
+    this.api.removeAvatar().subscribe({
+      next: (u) => {
+        this.avatarBusy.set(false);
+        this.auth.setUser(u);
+        this.message.success('Đã xoá ảnh đại diện');
+      },
+      error: (err) => {
+        this.avatarBusy.set(false);
+        this.message.error(apiErrorMessage(err));
       },
     });
   }

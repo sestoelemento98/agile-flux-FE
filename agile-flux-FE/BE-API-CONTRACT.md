@@ -117,7 +117,7 @@ export interface User {
   email: string;
   username: string;
   fullName: string;
-  avatarUrl: string | null;
+  avatarUrl: string | null; // "/api/avatars/<uuid>.png" (ảnh upload, đường dẫn tương đối) | "https://..." (URL ngoài) | null — xem mục 6.1.1
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -269,6 +269,9 @@ Mọi endpoint 👥/🛡 trả **403** nếu không đủ quyền, **404** nếu
 | GET    | `/api/users/me`          | 👤    | —                       | 200 `User`                                                                                  |
 | PATCH  | `/api/users/me`          | 👤    | `UpdateProfileRequest`  | 200 `User`                                                                                  |
 | PUT    | `/api/users/me/password` | 👤    | `ChangePasswordRequest` | 204                                                                                         |
+| POST   | `/api/users/me/avatar`   | 👤    | `multipart/form-data`, field **`file`** | 200 `User` (đã có `avatarUrl` mới) — xem mục 6.1.1                          |
+| DELETE | `/api/users/me/avatar`   | 👤    | —                       | 200 `User` (`avatarUrl: null`)                                                              |
+| GET    | `/api/avatars/{fileName}`| 🔓    | —                       | 200 ảnh (binary) — **public**, dùng thẳng trong `<img src>`                                 |
 | GET    | `/api/users`             | 👤    | —                       | 200 `User[]` — mọi user đang active, sắp theo `fullName` (dùng cho ô chọn thành viên)       |
 | GET    | `/api/users/{id}`        | 👤    | —                       | 200 `User`                                                                                  |
 | DELETE | `/api/users/{id}`        | 👤    | —                       | 204 — chỉ được khoá **chính mình** (khác → 403). Tài khoản bị khoá không đăng nhập được nữa |
@@ -287,7 +290,7 @@ export interface LoginRequest {
 export interface UpdateProfileRequest {
   // field nào null/không gửi = giữ nguyên
   fullName?: string; // ≤255
-  avatarUrl?: string; // chỉ là URL string, BE không có API upload avatar
+  avatarUrl?: string; // CHỈ dùng cho URL ảnh ngoài, phải bắt đầu bằng http:// hoặc https:// (khác → 400). Upload ảnh từ máy dùng POST /users/me/avatar
 }
 export interface ChangePasswordRequest {
   currentPassword: string; // sai → 400 "Mật khẩu hiện tại không đúng"
@@ -296,6 +299,47 @@ export interface ChangePasswordRequest {
 ```
 
 > ⚠ `/api/users/me` **không** nhận query `?currentUserId=` nữa — user được xác định từ token.
+
+#### 6.1.1 Avatar
+
+**Upload / đổi avatar:** `POST /api/users/me/avatar`, `multipart/form-data`, field `file`.
+
+- Chỉ nhận **PNG, JPEG, GIF, WEBP**, tối đa **2MB**. BE nhận diện loại ảnh bằng nội dung file (magic bytes), không theo đuôi/Content-Type → đổi đuôi file khác thành `.png` vẫn bị từ chối. **Không nhận SVG.**
+- Sai loại → 400 `"Chỉ nhận ảnh PNG, JPEG, GIF hoặc WEBP"`; quá 2MB → 400 `"Ảnh đại diện tối đa 2MB"`; file rỗng → 400 `"File rỗng"`.
+- Nên chặn trước ở FE: `accept="image/png,image/jpeg,image/gif,image/webp"` và `file.size <= 2 * 1024 * 1024`. Muốn crop/resize thì làm ở FE trước khi upload.
+- Response là `User` đầy đủ → cập nhật luôn user đang lưu ở FE (topbar, localStorage...).
+- Ảnh cũ (nếu là ảnh đã upload) bị BE tự xoá. Mỗi lần upload sinh **URL mới** → không cần cache-busting `?v=`.
+
+```ts
+uploadAvatar(file: File): Observable<User> {
+  const fd = new FormData();
+  fd.append('file', file);                       // KHÔNG tự set Content-Type
+  return this.http.post<User>(`${environment.apiUrl}/users/me/avatar`, fd);
+}
+removeAvatar(): Observable<User> {
+  return this.http.delete<User>(`${environment.apiUrl}/users/me/avatar`);
+}
+```
+
+**Hiển thị avatar:** `avatarUrl` có 3 dạng — xử lý bằng 1 hàm dùng chung (vd pipe):
+
+```ts
+// environment.apiUrl = 'http://localhost:8080/api' -> host = 'http://localhost:8080'
+const API_HOST = environment.apiUrl.replace(/\/api$/, '');
+export function avatarSrc(avatarUrl: string | null): string | null {
+  if (!avatarUrl) return null;                       // null -> hiện chữ cái đầu của fullName
+  if (avatarUrl.startsWith('/')) return API_HOST + avatarUrl;   // ảnh upload: "/api/avatars/..."
+  return avatarUrl;                                  // URL ngoài "https://..."
+}
+```
+
+- `GET /api/avatars/{fileName}` **không cần token** (thẻ `<img>` không gửi được header Authorization) → dùng thẳng `<img [src]="avatarSrc(user.avatarUrl)">` / `<nz-avatar [nzSrc]="...">`. **Khác với attachment** (phải tải bằng HttpClient + blob).
+- Response có `Cache-Control: max-age=31536000, public, immutable` → trình duyệt cache lâu, an toàn vì URL đổi mỗi lần upload.
+- Các DTO khác chỉ có `avatarUrl` cùng định dạng trên: `IssueWatcher.avatarUrl`, `Comment.authorAvatarUrl` → dùng chung `avatarSrc()`.
+
+**Xoá avatar:** `DELETE /api/users/me/avatar` → `avatarUrl: null`.
+
+**Dùng URL ngoài** (vd Gravatar): `PATCH /api/users/me` `{ "avatarUrl": "https://..." }`.
 
 ### 6.2 Project
 
@@ -711,7 +755,8 @@ Mẫu thật:
 - Board/Column/Card API, thứ tự card trong cột (`position`), optimistic lock `version`.
 - Số lượng comment/attachment trên `Issue` (card hiển thị `commentsCount` → hiện chưa có; phải gọi API riêng cho từng issue, hoặc bổ sung field ở BE).
 - Lọc/tìm kiếm/phân trang issue (hiện trả toàn bộ issue của project).
-- Refresh token, quên mật khẩu, xác thực email, upload avatar (chỉ có `avatarUrl` string).
+- Refresh token, quên mật khẩu, xác thực email.
+- Resize/crop avatar ở BE (BE lưu nguyên file đã upload, ≤2MB).
 - Thông báo (notification) cho watcher.
 - Broadcast WebSocket khi tạo/xoá issue, comment, attachment, sprint.
 - Role admin toàn hệ thống.

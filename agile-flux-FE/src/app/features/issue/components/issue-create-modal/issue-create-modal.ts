@@ -9,9 +9,11 @@ import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { switchMap, of } from 'rxjs';
+import { Observable, map, switchMap, of } from 'rxjs';
 import { IssueApi } from '../../../../core/api/issue-api';
-import { IssueCreateRequest, IssuePriority, IssueType } from '../../../../core/models/api.models';
+import { ProjectApi } from '../../../../core/api/project-api';
+import { UserApi } from '../../../../core/api/user-api';
+import { IssueCreateRequest, IssuePriority, IssueType, User } from '../../../../core/models/api.models';
 import { ISSUE_PRIORITIES, ISSUE_TYPES } from '../../../../core/models/display';
 import { apiErrorMessage, applyFieldErrors } from '../../../../core/utils/api-error';
 import { ProjectContext } from '../../../project/project-context';
@@ -34,6 +36,8 @@ import { ProjectContext } from '../../../project/project-context';
 export class IssueCreateModalComponent {
   protected ctx = inject(ProjectContext);
   private api = inject(IssueApi);
+  private projectApi = inject(ProjectApi);
+  private userApi = inject(UserApi);
   private fb = inject(NonNullableFormBuilder);
   private message = inject(NzMessageService);
 
@@ -59,11 +63,17 @@ export class IssueCreateModalComponent {
   /** Parent hợp lệ: cùng project và không phải sub_task. */
   parentOptions = computed(() => this.ctx.issues().filter((i) => i.type !== 'sub_task'));
 
+  /** Mọi user active trong hệ thống — chọn người ngoài project thì tự thêm vào project khi tạo. */
+  private users = signal<User[]>([]);
+  private memberIds = computed(() => new Set(this.ctx.members().map((m) => m.userId)));
+  nonMembers = computed(() => this.users().filter((u) => !this.memberIds().has(u.id)));
+
   constructor() {
     effect(() => {
       const draft = this.ctx.issueDraft();
       if (!draft) return;
       untracked(() => {
+        this.userApi.list().subscribe({ next: (users) => this.users.set(users) });
         this.form.reset({
           type: draft.type ?? (draft.parentIssueId ? 'sub_task' : 'task'),
           title: '',
@@ -115,14 +125,22 @@ export class IssueCreateModalComponent {
     if (v.epicId) body.epicId = v.epicId;
     if (v.sprintId) body.sprintId = v.sprintId;
     if (v.assigneeId) body.assigneeId = v.assigneeId;
+    // BE chỉ cho giao cho thành viên project → thêm người được chọn vào project trước
+    const assigneeToAdd =
+      v.assigneeId && !this.memberIds().has(v.assigneeId) ? v.assigneeId : null;
     if (v.type === 'sub_task' && v.parentIssueId) body.parentIssueId = v.parentIssueId;
 
     // Issue mới luôn ở 'todo'; nếu tạo từ cột khác thì đổi status ngay sau đó.
     const targetStatus = this.ctx.issueDraft()?.status;
     this.submitting.set(true);
-    this.api
-      .create(body)
+    const addMember$: Observable<unknown> = assigneeToAdd
+      ? this.projectApi.addMember(projectId, { userId: assigneeToAdd }).pipe(
+          map((member) => this.ctx.members.update((list) => [...list, member])),
+        )
+      : of(null);
+    addMember$
       .pipe(
+        switchMap(() => this.api.create(body)),
         switchMap((issue) =>
           targetStatus && targetStatus !== 'todo'
             ? this.api.changeStatus(issue.id, targetStatus)

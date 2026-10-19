@@ -43,6 +43,7 @@ import {
   formatLocalDate,
 } from '../../../../core/models/display';
 import { apiErrorMessage, applyFieldErrors } from '../../../../core/utils/api-error';
+import { AvatarSrcPipe } from '../../../../core/utils/avatar';
 import { ProjectContext } from '../../../project/project-context';
 import {
   IssueTypeIconComponent,
@@ -57,6 +58,7 @@ const ACTIVITY_PAGE_SIZE = 50;
   selector: 'app-issue-detail-drawer',
   imports: [
     DatePipe,
+    AvatarSrcPipe,
     FormsModule,
     ReactiveFormsModule,
     NzDrawerModule,

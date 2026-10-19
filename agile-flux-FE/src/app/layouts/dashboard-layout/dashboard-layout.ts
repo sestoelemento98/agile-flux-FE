@@ -3,6 +3,7 @@ import { Router, RouterOutlet } from '@angular/router';
 import { Sidebar, SidebarMenuItem, SidebarProgress } from './sidebar/sidebar';
 import { Topbar, TopbarMember, TopbarUser } from './topbar/topbar';
 import { AuthService } from '../../core/auth/auth';
+import { avatarSrc } from '../../core/utils/avatar';
 import { ProjectContext } from '../../features/project/project-context';
 
 @Component({
@@ -63,7 +64,7 @@ export class DashboardLayoutComponent {
 
   currentUser = computed<TopbarUser>(() => {
     const u = this.auth.user();
-    return { name: u?.fullName ?? 'Bạn', avatarUrl: u?.avatarUrl ?? undefined };
+    return { name: u?.fullName ?? 'Bạn', avatarUrl: avatarSrc(u?.avatarUrl) };
   });
 
   projectName = computed(() => {

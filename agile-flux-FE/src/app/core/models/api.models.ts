@@ -33,6 +33,7 @@ export interface User {
   email: string;
   username: string;
   fullName: string;
+  /** "/api/avatars/<uuid>.png" (ảnh upload) | "https://..." (URL ngoài) | null — hiển thị qua avatarSrc() */
   avatarUrl: string | null;
   active: boolean;
   createdAt: string;
@@ -188,6 +189,7 @@ export interface LoginRequest {
 
 export interface UpdateProfileRequest {
   fullName?: string;
+  /** Chỉ URL ngoài (http/https). Upload ảnh từ máy dùng POST /users/me/avatar */
   avatarUrl?: string;
 }
 

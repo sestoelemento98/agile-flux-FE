@@ -10,13 +10,49 @@
       <div class="who">
         <nz-avatar
           [nzSize]="56"
-          [nzSrc]="u.avatarUrl ?? undefined"
+          [nzSrc]="u.avatarUrl | avatarSrc"
           [nzText]="u.fullName.charAt(0)"
         ></nz-avatar>
         <div>
           <h3>{{ u.fullName }}</h3>
           <div class="af-muted">{{ u.email }} · &#64;{{ u.username }}</div>
           <div class="af-muted">Tham gia {{ u.createdAt | date: 'dd/MM/yyyy' }}</div>
+          <div class="avatar-actions">
+            <input
+              #avatarInput
+              type="file"
+              hidden
+              [accept]="avatarAccept"
+              (change)="onAvatarSelected($event)"
+            />
+            <button
+              nz-button
+              nzSize="small"
+              type="button"
+              [nzLoading]="avatarBusy()"
+              (click)="avatarInput.click()"
+            >
+              <span nz-icon nzType="upload"></span>
+              {{ u.avatarUrl ? 'Đổi ảnh' : 'Tải ảnh lên' }}
+            </button>
+            @if (u.avatarUrl) {
+              <button
+                nz-button
+                nzSize="small"
+                nzDanger
+                type="button"
+                [disabled]="avatarBusy()"
+                nz-popconfirm
+                nzPopconfirmTitle="Xoá ảnh đại diện?"
+                nzOkText="Xoá"
+                nzCancelText="Huỷ"
+                (nzOnConfirm)="removeAvatar()"
+              >
+                Xoá ảnh
+              </button>
+            }
+            <span class="af-muted">PNG, JPEG, GIF, WEBP · tối đa 2MB</span>
+          </div>
         </div>
       </div>
 
@@ -28,8 +64,11 @@
           </nz-form-control>
         </nz-form-item>
         <nz-form-item>
-          <nz-form-label>Ảnh đại diện (URL)</nz-form-label>
-          <nz-form-control nzExtra="Dán đường dẫn ảnh. Chưa hỗ trợ tải ảnh lên.">
+          <nz-form-label>Hoặc dùng ảnh từ URL</nz-form-label>
+          <nz-form-control
+            nzExtra="Đường dẫn ảnh ngoài (vd Gravatar). Để trống = giữ ảnh hiện tại."
+            nzErrorTip="URL phải bắt đầu bằng http:// hoặc https://"
+          >
             <input nz-input formControlName="avatarUrl" placeholder="https://..." />
           </nz-form-control>
         </nz-form-item>

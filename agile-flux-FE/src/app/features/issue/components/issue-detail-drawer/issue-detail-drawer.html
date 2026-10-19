@@ -69,7 +69,7 @@
                   <div class="comment">
                     <nz-avatar
                       nzSize="small"
-                      [nzSrc]="c.authorAvatarUrl ?? undefined"
+                      [nzSrc]="c.authorAvatarUrl | avatarSrc"
                       [nzText]="c.authorName.charAt(0)"
                     ></nz-avatar>
                     <div class="comment__body">
@@ -386,7 +386,7 @@
               @for (w of watchers(); track w.userId) {
                 <nz-avatar
                   nzSize="small"
-                  [nzSrc]="w.avatarUrl ?? undefined"
+                  [nzSrc]="w.avatarUrl | avatarSrc"
                   [nzText]="w.fullName.charAt(0)"
                   nz-tooltip
                   [nzTooltipTitle]="w.fullName"
