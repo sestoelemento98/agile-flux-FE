@@ -39,6 +39,13 @@
     font-weight: 600;
   }
 
+  &__viewport {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
   &__columns {
     display: flex;
     align-items: flex-start;
@@ -46,5 +53,75 @@
     flex: 1;
     overflow-x: auto;
     padding-bottom: 8px;
+  }
+
+  /* Phủ đúng khung nhìn của vùng cột; bản sao card nằm ngoài khung bị cắt */
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 10;
+  }
+}
+
+/* Bản sao card người khác đang kéo */
+.af-remote-drag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* message đến ~20 lần/giây → nội suy cho mượt */
+  transition: transform 80ms linear;
+  will-change: transform;
+
+  &__card {
+    opacity: 0.9;
+    transform: rotate(2deg);
+    outline: 2px dashed;
+    outline-offset: 3px;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.18);
+  }
+
+  &__name {
+    position: absolute;
+    right: -3px;
+    top: calc(100% + 6px);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+
+  &__avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+}
+
+/* Điện thoại quay ngang */
+@media (orientation: landscape) and (max-height: 500px) {
+  .af-kanban-board {
+    &__toolbar {
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    &__filter {
+      width: 120px;
+    }
+
+    &__columns {
+      gap: 10px;
+      padding-bottom: 4px;
+    }
   }
 }

@@ -17,3 +17,14 @@
     padding: 24px;
   }
 }
+
+/* Điện thoại quay ngang: chiều cao rất thấp → thu gọn khoảng trống */
+@media (orientation: landscape) and (max-height: 500px) {
+  .af-shell {
+    height: 100dvh;
+
+    &__content {
+      padding: 10px 12px;
+    }
+  }
+}

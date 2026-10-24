@@ -2,7 +2,7 @@
 
 > **Gửi Claude bên FE:** đây là nguồn sự thật về API backend (Spring Boot, repo `agile-flux-BE`).
 > FE phải khớp **tuyệt đối** tên field, kiểu dữ liệu, giá trị enum, URL ở đây — không tự đoán, không fallback âm thầm.
-> Mọi JSON mẫu trong file này được **chụp từ response thật** của BE (ngày 2026-10-19), không phải viết tay.
+> Mọi JSON mẫu trong file này được **chụp từ response thật** của BE (REST: 2026-10-19; WebSocket kéo thả realtime mục 8.3: 2026-10-22), không phải viết tay.
 > Nếu FE cần dữ liệu mà BE chưa có (xem mục 12), hãy báo lại để sửa BE thay vì tự chế ở FE.
 
 ---
@@ -11,16 +11,18 @@
 
 Đối chiếu với code FE (`agile-flux-FE/src`) ở commit `bb8ed3d`:
 
-| Chỗ ở FE                                                                                       | Vấn đề                                                                                                       | Cách sửa                                                                                                                                                                                                |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `features/board/services/board.ts` — `GET /boards/{id}`, `POST /boards/{id}/cards/move`        | **Hai endpoint này không còn tồn tại.** BE không có Board/Column/Card nữa.                                   | Board = `GET /api/projects/{projectId}/issues` rồi nhóm theo `status`. Kéo thả = `PATCH /api/issues/{id}/status`. Xem mục 7.                                                                            |
-| `features/board/models/kanban.model.ts` — `id: number`, `position`, `version`, `CardMoveEvent` | Mọi id ở BE là **UUID dạng string**. BE **không lưu thứ tự card trong cột** (không có `position`/`version`). | Dùng interface `Issue` ở mục 5. Bỏ `position`/`version`/`CardMoveEvent`. Thứ tự trong cột: sắp xếp phía FE (đề xuất theo `issueNumber` tăng dần).                                                       |
-| 4 cột Kanban                                                                                   | Cột cố định = 4 giá trị enum `status`: `todo`, `in_progress`, `testing`, `done`. Không có API cột.           | Hard-code 4 cột ở FE, map `key` cột ↔ `status`.                                                                                                                                                         |
-| `features/project/models/project.model.ts` — `id: number`                                      | Sai kiểu, thiếu field.                                                                                       | Dùng interface `Project` ở mục 5.                                                                                                                                                                       |
-| `features/*/models/task.model.ts` — `type: 'Story'                                             | 'Task'                                                                                                       | 'Bug'`, `priority: 'Low'                                                                                                                                                                                | ...` | Enum BE là **chữ thường snake_case** (`story`, `sub_task`, `high`...), có thêm `sub_task`, `lowest`, `highest`. | Dùng type ở mục 4. Hiển thị label tiếng Việt/hoa thì map riêng ở FE. |
-| `core/auth/auth.ts` — `login(email, password)` chỉ `console.log`                               | Chưa gọi API.                                                                                                | `POST /api/auth/login` với body `{ login, password }` (field tên **`login`**, nhận email hoặc username). Lưu `accessToken` vào `localStorage['token']` (interceptor hiện tại đọc key này — giữ nguyên). |
-| `core/services/websocket.ts` — `new Client({...})` không gửi token                             | **BE từ chối STOMP CONNECT không có token** (nhận ERROR frame, không subscribe được).                        | Thêm `connectHeaders` / `beforeConnect` — xem mục 8.                                                                                                                                                    |
-| `core/interceptors/jwt-interceptor.ts`                                                         | OK (gửi `Authorization: Bearer`). Chưa xử lý 401.                                                            | Nên bắt 401 → xoá token → chuyển về trang login.                                                                                                                                                        |
+| Chỗ ở FE                                                                                       | Vấn đề                                                                                                                | Cách sửa                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `features/board/services/board.ts` — `GET /boards/{id}`, `POST /boards/{id}/cards/move`        | **Hai endpoint này không còn tồn tại.** BE không có Board/Column/Card nữa.                                            | Board = `GET /api/projects/{projectId}/issues` rồi nhóm theo `status`. Kéo thả = `PATCH /api/issues/{id}/status`. Xem mục 7.                                                                            |
+| `features/board/models/kanban.model.ts` — `id: number`, `position`, `version`, `CardMoveEvent` | Mọi id ở BE là **UUID dạng string**. BE **không lưu thứ tự card trong cột** (không có `position`/`version`).          | Dùng interface `Issue` ở mục 5. Bỏ `position`/`version`/`CardMoveEvent`. Thứ tự trong cột: sắp xếp phía FE (đề xuất theo `issueNumber` tăng dần).                                                       |
+| 4 cột Kanban                                                                                   | Cột cố định = 4 giá trị enum `status`: `todo`, `in_progress`, `testing`, `done`. Không có API cột.                    | Hard-code 4 cột ở FE, map `key` cột ↔ `status`.                                                                                                                                                         |
+| `features/project/models/project.model.ts` — `id: number`                                      | Sai kiểu, thiếu field.                                                                                                | Dùng interface `Project` ở mục 5.                                                                                                                                                                       |
+| `features/*/models/task.model.ts` — `type: 'Story'                                             | 'Task'                                                                                                                | 'Bug'`, `priority: 'Low'                                                                                                                                                                                | ...` | Enum BE là **chữ thường snake_case** (`story`, `sub_task`, `high`...), có thêm `sub_task`, `lowest`, `highest`. | Dùng type ở mục 4. Hiển thị label tiếng Việt/hoa thì map riêng ở FE. |
+| `core/auth/auth.ts` — `login(email, password)` chỉ `console.log`                               | Chưa gọi API.                                                                                                         | `POST /api/auth/login` với body `{ login, password }` (field tên **`login`**, nhận email hoặc username). Lưu `accessToken` vào `localStorage['token']` (interceptor hiện tại đọc key này — giữ nguyên). |
+| `core/services/websocket.ts` — `new Client({...})` không gửi token                             | **BE từ chối STOMP CONNECT không có token** (nhận ERROR frame, không subscribe được).                                 | Thêm `connectHeaders` / `beforeConnect` — xem mục 8.                                                                                                                                                    |
+| **MỚI 2026-10-22** — board kéo thả realtime kiểu Figma                                         | Người khác thấy card đang bay theo chuột người kéo, viền nét đứt + tên người kéo ở góc dưới phải.                     | Làm theo **mục 8.3** (gửi `/app/projects/{id}/drag`, subscribe `/topic/projects/{id}/drag`, `/user/queue/errors`).                                                                                      |
+| **MỚI 2026-10-22** — SUBSCRIBE topic project                                                   | BE giờ **chặn** subscribe `/topic/projects/{id}/**` nếu không phải thành viên (trước đây ai có token cũng nghe được). | Chỉ subscribe project mà user là thành viên; lắng nghe `/user/queue/errors` để biết khi bị từ chối (mục 8.4).                                                                                           |
+| `core/interceptors/jwt-interceptor.ts`                                                         | OK (gửi `Authorization: Bearer`). Chưa xử lý 401.                                                                     | Nên bắt 401 → xoá token → chuyển về trang login.                                                                                                                                                        |
 
 ---
 
@@ -73,6 +75,7 @@ Quyền tính **theo từng project**:
 - Project đã archive (`archived: true`): **chỉ đọc** — mọi thao tác ghi trả **400** `"Project đã archive, không thể chỉnh sửa"`.
 - Comment: chỉ **tác giả** được sửa; tác giả hoặc admin được xoá.
 - Attachment: người upload hoặc admin được xoá.
+- WebSocket: chỉ thành viên mới **subscribe** được `/topic/projects/{id}/board` và `/drag`, và chỉ thành viên của project chưa archive mới **gửi** được message kéo thả (mục 8).
 
 Gợi ý UI: lấy `role` của user hiện tại từ `GET /projects/{id}/members` (so `userId` với `user.id` lúc login) để ẩn/hiện nút admin. BE vẫn chặn lại nếu FE gửi sai.
 
@@ -262,19 +265,19 @@ Mọi endpoint 👥/🛡 trả **403** nếu không đủ quyền, **404** nếu
 
 ### 6.1 Auth & User
 
-| Method | URL                      | Quyền | Body                    | Response                                                                                    |
-| ------ | ------------------------ | ----- | ----------------------- | ------------------------------------------------------------------------------------------- |
-| POST   | `/api/users/register`    | 🔓    | `RegisterRequest`       | **201** `User`                                                                              |
-| POST   | `/api/auth/login`        | 🔓    | `LoginRequest`          | 200 `LoginResponse`                                                                         |
-| GET    | `/api/users/me`          | 👤    | —                       | 200 `User`                                                                                  |
-| PATCH  | `/api/users/me`          | 👤    | `UpdateProfileRequest`  | 200 `User`                                                                                  |
-| PUT    | `/api/users/me/password` | 👤    | `ChangePasswordRequest` | 204                                                                                         |
-| POST   | `/api/users/me/avatar`   | 👤    | `multipart/form-data`, field **`file`** | 200 `User` (đã có `avatarUrl` mới) — xem mục 6.1.1                          |
-| DELETE | `/api/users/me/avatar`   | 👤    | —                       | 200 `User` (`avatarUrl: null`)                                                              |
-| GET    | `/api/avatars/{fileName}`| 🔓    | —                       | 200 ảnh (binary) — **public**, dùng thẳng trong `<img src>`                                 |
-| GET    | `/api/users`             | 👤    | —                       | 200 `User[]` — mọi user đang active, sắp theo `fullName` (dùng cho ô chọn thành viên)       |
-| GET    | `/api/users/{id}`        | 👤    | —                       | 200 `User`                                                                                  |
-| DELETE | `/api/users/{id}`        | 👤    | —                       | 204 — chỉ được khoá **chính mình** (khác → 403). Tài khoản bị khoá không đăng nhập được nữa |
+| Method | URL                       | Quyền | Body                                    | Response                                                                                    |
+| ------ | ------------------------- | ----- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
+| POST   | `/api/users/register`     | 🔓    | `RegisterRequest`                       | **201** `User`                                                                              |
+| POST   | `/api/auth/login`         | 🔓    | `LoginRequest`                          | 200 `LoginResponse`                                                                         |
+| GET    | `/api/users/me`           | 👤    | —                                       | 200 `User`                                                                                  |
+| PATCH  | `/api/users/me`           | 👤    | `UpdateProfileRequest`                  | 200 `User`                                                                                  |
+| PUT    | `/api/users/me/password`  | 👤    | `ChangePasswordRequest`                 | 204                                                                                         |
+| POST   | `/api/users/me/avatar`    | 👤    | `multipart/form-data`, field **`file`** | 200 `User` (đã có `avatarUrl` mới) — xem mục 6.1.1                                          |
+| DELETE | `/api/users/me/avatar`    | 👤    | —                                       | 200 `User` (`avatarUrl: null`)                                                              |
+| GET    | `/api/avatars/{fileName}` | 🔓    | —                                       | 200 ảnh (binary) — **public**, dùng thẳng trong `<img src>`                                 |
+| GET    | `/api/users`              | 👤    | —                                       | 200 `User[]` — mọi user đang active, sắp theo `fullName` (dùng cho ô chọn thành viên)       |
+| GET    | `/api/users/{id}`         | 👤    | —                                       | 200 `User`                                                                                  |
+| DELETE | `/api/users/{id}`         | 👤    | —                                       | 204 — chỉ được khoá **chính mình** (khác → 403). Tài khoản bị khoá không đăng nhập được nữa |
 
 ```ts
 export interface RegisterRequest {
@@ -327,9 +330,9 @@ removeAvatar(): Observable<User> {
 // environment.apiUrl = 'http://localhost:8080/api' -> host = 'http://localhost:8080'
 const API_HOST = environment.apiUrl.replace(/\/api$/, '');
 export function avatarSrc(avatarUrl: string | null): string | null {
-  if (!avatarUrl) return null;                       // null -> hiện chữ cái đầu của fullName
-  if (avatarUrl.startsWith('/')) return API_HOST + avatarUrl;   // ảnh upload: "/api/avatars/..."
-  return avatarUrl;                                  // URL ngoài "https://..."
+  if (!avatarUrl) return null; // null -> hiện chữ cái đầu của fullName
+  if (avatarUrl.startsWith('/')) return API_HOST + avatarUrl; // ảnh upload: "/api/avatars/..."
+  return avatarUrl; // URL ngoài "https://..."
 }
 ```
 
@@ -594,11 +597,23 @@ issues = await GET`/api/projects/${projectId}/issues`;
 // 4. Kéo thả trong CÙNG cột: BE không lưu thứ tự → không gọi API (thứ tự sẽ về lại theo issueNumber khi tải lại)
 ```
 
+Trong lúc kéo, FE đồng thời gửi vị trí card qua WebSocket để thành viên khác thấy card đang bay (viền nét đứt + tên người kéo) — xem **mục 8.3**.
+
 Dữ liệu card lấy từ `Issue`: `issueKey`, `title`, `type`, `priority`, `assigneeName`, `dueDate`, `labels[]` (dùng `label.color` hex). `completed` = `status === 'done'`.
 
 ---
 
-## 8. WebSocket (cập nhật board realtime)
+## 8. WebSocket (board realtime)
+
+Có 2 loại realtime trên board, đi trên 2 topic riêng:
+
+| Topic                               | Dùng để                                                             | Tần suất                                | Mục |
+| ----------------------------------- | ------------------------------------------------------------------- | --------------------------------------- | --- |
+| `/topic/projects/{projectId}/board` | Dữ liệu issue **đã lưu DB** thay đổi (đổi status, sửa, label)       | thấp (mỗi thao tác 1 message)           | 8.2 |
+| `/topic/projects/{projectId}/drag`  | **Đang kéo** card — vị trí card theo chuột người kéo (không lưu DB) | cao (~20 message/giây khi có người kéo) | 8.3 |
+| `/user/queue/errors`                | Lỗi **riêng** cho tab của mình (gửi drag sai, subscribe bị chặn)    | hiếm                                    | 8.4 |
+
+### 8.1 Kết nối
 
 - Endpoint SockJS: `http://localhost:8080/ws/kanban` (giữ `environment.wsUrl` hiện tại).
 - **Bắt buộc gửi token trong header của frame CONNECT** (handshake SockJS không gửi được header HTTP):
@@ -613,16 +628,175 @@ this.client = new Client({
   beforeConnect: () => {
     this.client.connectHeaders = { Authorization: `Bearer ${localStorage.getItem('token') ?? ''}` };
   },
+  onConnect: () => {
+    // stompjs KHÔNG tự subscribe lại sau reconnect → mọi subscribe phải đặt trong onConnect
+    // (hoặc service giữ danh sách subscription và đăng ký lại ở đây)
+    this.client.subscribe('/user/queue/errors', msg => this.handleWsError(JSON.parse(msg.body)));
+    // + subscribe lại /board và /drag của project đang mở (nếu có)
+  },
 });
 ```
 
-Chỉ gọi `connect()` **sau khi đã đăng nhập**. Không có / sai token → nhận ERROR frame (`onStompError`) và bị ngắt kết nối; với `reconnectDelay` nó sẽ thử lại liên tục → nên `deactivate()` khi logout.
+Chỉ gọi `connect()` **sau khi đã đăng nhập**. Không có / sai token → nhận ERROR frame (`onStompError`, `frame.headers.message = "STOMP CONNECT thiếu hoặc sai token"`) và bị ngắt kết nối; với `reconnectDelay` nó sẽ thử lại liên tục → nên `deactivate()` khi logout.
 
-- Topic: **`/topic/projects/{projectId}/board`**
+### 8.2 `/topic/projects/{projectId}/board` — issue đã thay đổi
+
 - Payload: **một `Issue` đầy đủ** (giống hệt response REST). Handler: tìm card theo `id` → thay bằng dữ liệu mới (và chuyển cột nếu `status` đổi).
 - BE broadcast khi: đổi status (`PATCH /status`), sửa issue (`PUT`), gắn/gỡ label. Người vừa thao tác **cũng nhận** message của chính mình → handler phải idempotent (thay thế, không cộng dồn).
 - BE **chưa** broadcast khi: tạo issue, xoá issue, comment, attachment, sprint. Nếu nhận message có `id` chưa có trong board (vd issue mới được sửa) → thêm vào hoặc bỏ qua tuỳ UI; FE nên tự refetch sau khi chính mình tạo/xoá.
-- Client không gửi gì lên server (không có `/app/...` destination).
+
+### 8.3 `/topic/projects/{projectId}/drag` — kéo thả realtime kiểu Figma
+
+**Mục tiêu UI:** khi user A đang kéo 1 card, mọi thành viên khác đang mở board thấy một **bản sao card bay theo chuột của A**, có **viền nét đứt** (màu riêng của A) bao quanh và **nhãn tên A ở góc dưới bên phải** card.
+
+BE chỉ **chuyển tiếp** (relay) vị trí, **không lưu DB**. Việc đổi cột thật vẫn là `PATCH /api/issues/{id}/status` như mục 7.
+
+#### Kiểu dữ liệu
+
+```ts
+export type DragPhase = 'start' | 'move' | 'end' | 'cancel';
+
+// FE → BE: client.publish({ destination: `/app/projects/${projectId}/drag`, body: JSON.stringify(req) })
+export interface DragRequest {
+  phase: DragPhase; // bắt buộc
+  issueId: string; // bắt buộc — card đang kéo
+  x?: number; // bắt buộc với start/move; tuỳ chọn với end/cancel. 0..1 (xem "Toạ độ" bên dưới)
+  y?: number; // như x
+  overStatus?: IssueStatus | null; // cột con trỏ đang nằm trên; null/không gửi = ở ngoài mọi cột
+}
+
+// BE → mọi client subscribe /topic/projects/{projectId}/drag (KỂ CẢ người kéo — tự lọc theo userId)
+export interface DragEvent {
+  phase: DragPhase;
+  projectId: string;
+  issueId: string;
+  userId: string; // người đang kéo — BE lấy từ token, không lấy từ body
+  userName: string; // fullName — hiển thị ở nhãn góc dưới phải
+  avatarUrl: string | null;
+  color: string; // hex "#RRGGBB" — màu viền nét đứt + nền nhãn tên. BE chọn theo userId → mọi client cùng 1 màu cho 1 người
+  x: number | null; // vị trí mới nhất (end/cancel không gửi toạ độ → BE điền vị trí move cuối cùng)
+  y: number | null;
+  overStatus: IssueStatus | null; // end/cancel không gửi → giữ giá trị của move cuối cùng
+  sentAt: string; // ISO-8601 giờ server — chỉ để debug, ĐỪNG dùng tính timeout (lệch giờ máy client)
+}
+```
+
+Mẫu thật (B nhận khi A đang kéo):
+
+```json
+{
+  "avatarUrl": null,
+  "color": "#FFC53D",
+  "issueId": "49fc27fc-36ad-42a2-bb34-95e33b4fd4cd",
+  "overStatus": "in_progress",
+  "phase": "move",
+  "projectId": "6abb752b-140a-4ecc-80d0-9081553ec477",
+  "sentAt": "2026-10-22T04:08:52.589433Z",
+  "userId": "6e830fea-5446-44a6-ae6d-5035f1d03a03",
+  "userName": "Người a",
+  "x": 0.6,
+  "y": 0.2
+}
+```
+
+#### Toạ độ `x`, `y`
+
+Mỗi người có kích thước màn hình khác nhau → **không gửi pixel**. Gửi **góc trên-trái của card** theo tỉ lệ của **vùng nội dung board** (phần tử bao 4 cột, tính cả phần cuộn):
+
+```ts
+// Phía người kéo
+const b = boardEl.getBoundingClientRect();
+x = (cardLeftPx - b.left + boardEl.scrollLeft) / boardEl.scrollWidth;
+y = (cardTopPx - b.top + boardEl.scrollTop) / boardEl.scrollHeight;
+// cardLeftPx/cardTopPx = pointerPosition - offset con trỏ trong card (ghi lại lúc start)
+// Kẹp về [0, 1] trước khi gửi — BE trả lỗi 400 nếu ngoài khoảng (mục 8.4)
+
+// Phía người xem — đặt bản sao card trong lớp overlay position:absolute phủ toàn bộ vùng nội dung board
+left = x * boardEl.scrollWidth;
+top = y * boardEl.scrollHeight;
+width = chiều rộng 1 cột trên màn hình NGƯỜI XEM (không dùng kích thước của người kéo)
+```
+
+#### Vòng đời 1 lượt kéo (phía người kéo)
+
+| Sự kiện Angular CDK                            | Gửi                                                                                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `(cdkDragStarted)`                             | `start` với `x`, `y`, `overStatus` = cột hiện tại của card                                                                            |
+| `(cdkDragMoved)`                               | `move` — **throttle tối đa 1 message / 50ms** (CDK bắn event mỗi lần chuột nhích). Luôn gửi vị trí mới nhất, bỏ các vị trí trung gian |
+| `(cdkDropListEntered)` / `(cdkDropListExited)` | chỉ cập nhật biến `overStatus` cục bộ (gửi kèm `move` kế tiếp)                                                                        |
+| `(cdkDropListDropped)` sang **cột khác**       | gọi `PATCH /api/issues/{id}/status` → **đợi xong (thành công hay lỗi)** → gửi `end`                                                   |
+| `(cdkDropListDropped)` trong **cùng cột**      | gửi `end` ngay (không gọi API — mục 7)                                                                                                |
+| thả ra ngoài mọi cột / nhấn Esc / huỷ          | gửi `cancel`                                                                                                                          |
+
+Vì sao gửi `end` **sau** khi PATCH xong: BE broadcast `/board` (issue đã sang cột mới) trong lúc xử lý PATCH, tức là **trước** khi người kéo nhận response và gửi `end`. Người xem vì vậy nhận theo thứ tự: `move…` → `Issue` mới trên `/board` (card thật nhảy sang cột mới) → `end` (xoá bản sao) — không bị nháy card về cột cũ. BE đảm bảo giữ đúng thứ tự message của từng tab cả chiều gửi lên lẫn chiều nhận về.
+
+#### Phía người xem
+
+```ts
+// key = `${userId}:${issueId}`
+remoteDrags = new Map<string, { event: DragEvent; lastSeen: number }>();
+
+onDragEvent(e: DragEvent) {
+  if (e.userId === me.id) return; // bỏ message của chính mình
+  const key = `${e.userId}:${e.issueId}`;
+  if (e.phase === 'end' || e.phase === 'cancel') { this.remoteDrags.delete(key); return; }
+  // start HOẶC move: tạo nếu chưa có (mở board giữa chừng sẽ bỏ lỡ start — move đã đủ field để vẽ)
+  this.remoteDrags.set(key, { event: e, lastSeen: Date.now() });
+}
+// setInterval 1s: xoá entry có Date.now() - lastSeen > 5000 (phòng mạng chập chờn mất end/cancel)
+```
+
+Hiển thị mỗi entry:
+
+- **Bản sao card**: render lại card của issue `issueId` (lấy từ danh sách issue đã tải), `position: absolute` trong overlay, `pointer-events: none`, `z-index` cao, `opacity: .9`, có thể xoay nhẹ `rotate(2deg)` + đổ bóng.
+- **Viền nét đứt**: `outline: 2px dashed ${color}; outline-offset: 3px;` (hoặc `border: 2px dashed`).
+- **Nhãn tên** ở **góc dưới bên phải**, nằm ngay dưới viền: `position: absolute; right: -3px; top: calc(100% + 6px);` nền `color`, chữ trắng, font 12px, bo góc, nội dung `userName` (có thể kèm avatar nhỏ từ `avatarUrl`).
+- **Mượt chuyển động**: message đến ~20 lần/giây → dùng `transform: translate(left, top)` + `transition: transform 80ms linear` thay vì đổi `left/top` trực tiếp.
+- **Card gốc** ở cột cũ: làm mờ (`opacity: .4`) và **khoá kéo** `[cdkDragDisabled]="isRemoteDragging(issue.id)"` để 2 người không kéo cùng 1 card. (BE không khoá — đây là khoá mềm phía UI.)
+- (Tuỳ chọn) tô nhẹ cột `overStatus` bằng `color` để thấy A sắp thả vào cột nào.
+
+#### Quy tắc BE kiểm tra (vi phạm → lỗi gửi về `/user/queue/errors` của người kéo, mục 8.4; message KHÔNG được broadcast)
+
+- `phase` phải là 1 trong 4 giá trị; `issueId` bắt buộc.
+- `start`: issue phải tồn tại (404) và thuộc đúng `projectId` trong destination (400); người gửi phải là thành viên (403); project chưa archive (400).
+- `move` / `end` / `cancel`: phải có `start` trước đó cho đúng `issueId` đó, trên **cùng tab** (cùng kết nối WebSocket), và lượt kéo chưa kết thúc → nếu không: 400 `"Chưa gửi phase start cho issue … (hoặc lượt kéo đã kết thúc)"`.
+- `x`, `y`: bắt buộc với `start`/`move`, phải trong `[0, 1]`. `overStatus` nếu có phải là `IssueStatus` hợp lệ.
+- Mỗi tab chỉ kéo **1 card tại 1 thời điểm**: gửi `start` mới khi lượt cũ chưa `end` → BE tự broadcast `cancel` cho lượt cũ.
+- **Tab đóng / mất mạng / logout giữa lúc kéo** → BE tự broadcast `cancel` → bản sao biến mất ở màn hình người khác.
+- Sau khi nhận lỗi cho 1 lượt kéo: **ngừng gửi `move`** cho lượt đó (nếu không mỗi `move` lại sinh thêm 1 lỗi). Card vẫn kéo thả bình thường ở máy mình, chỉ là người khác không thấy.
+
+### 8.4 `/user/queue/errors` — lỗi riêng của tab mình
+
+Frame `SEND` của STOMP không có HTTP status trả về, nên BE gửi lỗi về destination riêng này (**chỉ tab gây lỗi** nhận, tab khác cùng user không nhận). Subscribe **1 lần trong `onConnect`**, trước các subscribe khác.
+
+```ts
+export interface WsError {
+  status: number; // 400 | 403 | 404 — cùng ý nghĩa như REST
+  detail: string; // câu thông báo (tiếng Việt với lỗi nghiệp vụ)
+  source: 'drag' | 'subscribe'; // drag = message /app/.../drag bị từ chối; subscribe = SUBSCRIBE bị chặn
+}
+```
+
+Mẫu thật:
+
+```json
+{ "status": 400, "detail": "Chưa gửi phase start cho issue 49fc27fc-36ad-42a2-bb34-95e33b4fd4cd (hoặc lượt kéo đã kết thúc)", "source": "drag" }
+{ "status": 403, "detail": "Bạn không phải thành viên của project này, không thể subscribe /topic/projects/6abb752b-140a-4ecc-80d0-9081553ec477/drag", "source": "subscribe" }
+```
+
+- `source: 'subscribe'` (403): user không (còn) là thành viên project → BE **bỏ qua** frame SUBSCRIBE (không nhận gì từ topic đó, kết nối vẫn giữ). Gợi ý: báo lỗi + đưa về danh sách project.
+- `source: 'drag'`: chỉ cần `console.warn` + ngừng gửi `move` cho lượt kéo hiện tại; không cần toast cho người dùng.
+
+### 8.5 Tóm tắt destination
+
+| Chiều   | Destination                         | Payload       |
+| ------- | ----------------------------------- | ------------- |
+| BE → FE | `/topic/projects/{projectId}/board` | `Issue`       |
+| BE → FE | `/topic/projects/{projectId}/drag`  | `DragEvent`   |
+| BE → FE | `/user/queue/errors`                | `WsError`     |
+| FE → BE | `/app/projects/{projectId}/drag`    | `DragRequest` |
+
+Vào board của project: subscribe **cả** `/board` và `/drag`; rời board: `unsubscribe()` cả hai (và gửi `cancel` nếu đang kéo dở).
 
 ---
 
@@ -739,9 +913,9 @@ Mẫu thật:
 
 ## 11. Luồng màn hình gợi ý
 
-1. **Login/Register** → lưu `accessToken` vào `localStorage['token']`, lưu `user` (để biết `me.id`) → `websocket.connect()`.
+1. **Login/Register** → lưu `accessToken` vào `localStorage['token']`, lưu `user` (để biết `me.id` — cần để lọc message drag của chính mình) → `websocket.connect()` → trong `onConnect` subscribe `/user/queue/errors`.
 2. **Danh sách project**: `GET /projects` → lọc `archived`. Tạo project: form `key` + `name`.
-3. **Vào project**: song song `GET /projects/{id}`, `/members`, `/sprints`, `/epics`, `/labels`, `/issues` → subscribe `/topic/projects/{id}/board`.
+3. **Vào project**: song song `GET /projects/{id}`, `/members`, `/sprints`, `/epics`, `/labels`, `/issues` → subscribe `/topic/projects/{id}/board` **và** `/topic/projects/{id}/drag` (mục 8.3). Rời project → unsubscribe cả hai.
 4. **Board**: mục 7. **Backlog**: issue có `sprintId === null`.
 5. **Chi tiết issue** (modal/drawer): issue + `GET /issues/{id}/comments`, `/attachments`, `/watchers`, `/activities`.
 6. **Ô chọn assignee**: dùng `/projects/{id}/members` (assignee phải là thành viên), **không** dùng `/users`.

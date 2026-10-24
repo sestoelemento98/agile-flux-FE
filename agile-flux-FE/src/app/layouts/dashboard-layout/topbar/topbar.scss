@@ -145,3 +145,30 @@
     }
   }
 }
+
+/* Điện thoại quay ngang */
+@media (orientation: landscape) and (max-height: 500px) {
+  .af-topbar {
+    gap: 10px;
+    height: 44px;
+    padding: 0 12px;
+
+    &__project {
+      font-size: 14px;
+      padding: 2px 6px;
+    }
+
+    &__project-name {
+      max-width: 160px;
+    }
+
+    &__members-count,
+    &__user-name {
+      display: none;
+    }
+
+    &__search {
+      width: 180px;
+    }
+  }
+}

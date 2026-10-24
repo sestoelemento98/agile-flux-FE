@@ -121,3 +121,28 @@
 .cdk-drag-animating {
   transition: transform 0.2s cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* Điện thoại quay ngang */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Chỉ giữ tiêu đề cho gọn; chi tiết xem trong drawer khi bấm vào card */
+  .af-kanban-card {
+    gap: 0;
+    padding: 6px 8px;
+    border-radius: 8px;
+
+    &__head,
+    &__tags,
+    &__footer {
+      display: none;
+    }
+
+    &__title {
+      font-size: 12px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+}

@@ -303,6 +303,47 @@ export interface ApiError {
   fieldErrors?: ApiFieldError[];
 }
 
+// ===== WebSocket kéo thả realtime (mục 8.3, 8.4) =====
+export type DragPhase = 'start' | 'move' | 'end' | 'cancel';
+
+/** FE → BE: `/app/projects/{projectId}/drag` */
+export interface DragRequest {
+  phase: DragPhase;
+  issueId: string;
+  /** Bắt buộc với start/move. Góc trên-trái card theo tỉ lệ vùng nội dung board, 0..1 */
+  x?: number;
+  y?: number;
+  /** Cột con trỏ đang nằm trên; null = ở ngoài mọi cột */
+  overStatus?: IssueStatus | null;
+}
+
+/**
+ * BE → FE: `/topic/projects/{projectId}/drag` (kể cả người kéo — tự lọc theo userId).
+ * Contract gọi là `DragEvent` — đổi tên để không trùng DOM `DragEvent`.
+ */
+export interface BoardDragEvent {
+  phase: DragPhase;
+  projectId: string;
+  issueId: string;
+  userId: string;
+  userName: string;
+  avatarUrl: string | null;
+  /** "#RRGGBB" — màu viền nét đứt + nền nhãn tên */
+  color: string;
+  x: number | null;
+  y: number | null;
+  overStatus: IssueStatus | null;
+  /** Giờ server — chỉ để debug, không dùng tính timeout */
+  sentAt: string;
+}
+
+/** BE → FE: `/user/queue/errors` — chỉ tab gây lỗi nhận */
+export interface WsError {
+  status: number;
+  detail: string;
+  source: 'drag' | 'subscribe';
+}
+
 export function toIssueUpdateRequest(
   issue: Issue,
   changes: Partial<IssueUpdateRequest> = {},

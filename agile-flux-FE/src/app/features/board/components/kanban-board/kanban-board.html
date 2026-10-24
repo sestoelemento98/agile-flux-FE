@@ -50,18 +50,48 @@
     }
   </div>
 
-  <div class="af-kanban-board__columns">
-    @for (column of columns(); track column.key) {
-      <app-kanban-column
-        [column]="column"
-        [dropListId]="dropListId(column.key)"
-        [connectedTo]="connectedListIds()"
-        [readonly]="ctx.readonly()"
-        [epicsById]="epicsById()"
-        (cardClick)="onCardClick($event)"
-        (addCard)="addIssue(column.key)"
-        (dropped)="onCardDrop($event, column)"
-      ></app-kanban-column>
-    }
+  <div class="af-kanban-board__viewport">
+    <div class="af-kanban-board__columns" #columnsEl>
+      @for (column of columns(); track column.key) {
+        <app-kanban-column
+          [column]="column"
+          [dropListId]="dropListId(column.key)"
+          [connectedTo]="connectedListIds()"
+          [readonly]="ctx.readonly()"
+          [epicsById]="epicsById()"
+          [remoteIssueIds]="drag.remoteIssueIds()"
+          [remoteOverColor]="remoteOverColors().get(column.key) ?? null"
+          (cardClick)="onCardClick($event)"
+          (addCard)="addIssue(column.key)"
+          (dropped)="onCardDrop($event, column)"
+          (dragStarted)="onDragStarted($event)"
+          (dragMoved)="onDragMoved($event)"
+        ></app-kanban-column>
+      }
+    </div>
+
+    <!-- Card người khác đang kéo (mục 8.3) -->
+    <div class="af-kanban-board__overlay">
+      @for (ghost of remoteGhosts(); track ghost.key) {
+        <div
+          class="af-remote-drag"
+          [style.transform]="ghostTransform(ghost.drag)"
+          [style.width.px]="ghostWidth()"
+        >
+          <div class="af-remote-drag__card" [style.outlineColor]="ghost.drag.color">
+            <app-task-card
+              [issue]="ghost.issue"
+              [epic]="ghost.issue.epicId ? epicsById().get(ghost.issue.epicId) : undefined"
+            ></app-task-card>
+          </div>
+          <span class="af-remote-drag__name" [style.background]="ghost.drag.color">
+            @if (ghost.drag.avatarUrl | avatarSrc; as src) {
+              <img class="af-remote-drag__avatar" [src]="src" alt="" />
+            }
+            {{ ghost.drag.userName }}
+          </span>
+        </div>
+      }
+    </div>
   </div>
 </div>

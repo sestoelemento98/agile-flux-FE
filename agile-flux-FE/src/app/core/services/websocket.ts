@@ -3,6 +3,9 @@ import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { WsError } from '../models/api.models';
+
+const ERRORS_QUEUE = '/user/queue/errors';
 
 interface TopicEntry {
   subject: Subject<unknown>;
@@ -16,6 +19,7 @@ export class Websocket implements OnDestroy {
   private client: Client;
   private topics = new Map<string, TopicEntry>();
   private connected$ = new BehaviorSubject<boolean>(false);
+  private errors$ = new Subject<WsError>();
 
   constructor() {
     this.client = new Client({
@@ -34,6 +38,10 @@ export class Websocket implements OnDestroy {
 
     this.client.onConnect = () => {
       this.connected$.next(true);
+      // Lỗi riêng của tab này (mục 8.4) — subscribe trước các topic khác.
+      this.client.subscribe(ERRORS_QUEUE, (message: IMessage) => {
+        this.errors$.next(JSON.parse(message.body) as WsError);
+      });
       // (Re)subscribe mọi topic đang được lắng nghe — cần sau mỗi lần reconnect.
       this.topics.forEach((entry, topic) => this.stompSubscribe(topic, entry));
     };
@@ -53,6 +61,18 @@ export class Websocket implements OnDestroy {
 
   onConnected(): Observable<boolean> {
     return this.connected$.asObservable();
+  }
+
+  /** Lỗi BE gửi về `/user/queue/errors` (SEND/SUBSCRIBE bị từ chối). */
+  errors(): Observable<WsError> {
+    return this.errors$.asObservable();
+  }
+
+  /** Gửi message lên `/app/...`. Chưa kết nối → bỏ qua, trả về false. */
+  publish(destination: string, body: unknown): boolean {
+    if (!this.client.connected) return false;
+    this.client.publish({ destination, body: JSON.stringify(body) });
+    return true;
   }
 
   /**

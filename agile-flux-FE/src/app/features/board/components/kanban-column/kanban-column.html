@@ -1,4 +1,9 @@
-<div class="af-kanban-column" [ngStyle]="columnStyle">
+<div
+  class="af-kanban-column"
+  [class.af-kanban-column--remote-over]="remoteOverColor"
+  [attr.data-af-status]="column.key"
+  [ngStyle]="columnStyle"
+>
   <div class="af-kanban-column__header">
     <span class="af-kanban-column__dot"></span>
     <span class="af-kanban-column__title">{{ column.title }}</span>
@@ -18,7 +23,11 @@
       <app-task-card
         cdkDrag
         [cdkDragData]="issue"
+        [cdkDragDisabled]="remoteIssueIds.has(issue.id)"
+        (cdkDragStarted)="dragStarted.emit($event)"
+        (cdkDragMoved)="dragMoved.emit($event)"
         class="af-kanban-column__item"
+        [class.af-kanban-column__item--remote]="remoteIssueIds.has(issue.id)"
         [issue]="issue"
         [epic]="issue.epicId ? epicsById.get(issue.epicId) : undefined"
         (cardClick)="cardClick.emit($event)"

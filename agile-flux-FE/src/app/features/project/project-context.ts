@@ -1,5 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Subscription, forkJoin } from 'rxjs';
+import { Router } from '@angular/router';
+import { Subscription, filter, forkJoin } from 'rxjs';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { AuthService } from '../../core/auth/auth';
 import { ProjectApi } from '../../core/api/project-api';
 import {
@@ -14,6 +16,7 @@ import {
 } from '../../core/models/api.models';
 import { Websocket } from '../../core/services/websocket';
 import { apiErrorMessage } from '../../core/utils/api-error';
+import { BoardDrag } from '../board/services/board-drag';
 
 /** Giá trị mặc định khi mở form tạo issue. */
 export interface IssueDraft {
@@ -26,13 +29,16 @@ export interface IssueDraft {
 
 /**
  * Trạng thái dùng chung của project đang mở (mục 11.3):
- * tải song song project/members/sprints/epics/labels/issues và nghe WebSocket board.
+ * tải song song project/members/sprints/epics/labels/issues và nghe WebSocket /board + /drag.
  */
 @Injectable({ providedIn: 'root' })
 export class ProjectContext {
   private api = inject(ProjectApi);
   private auth = inject(AuthService);
   private ws = inject(Websocket);
+  private drag = inject(BoardDrag);
+  private router = inject(Router);
+  private message = inject(NzMessageService);
 
   readonly projectId = signal<string | null>(null);
   readonly project = signal<Project | null>(null);
@@ -75,6 +81,7 @@ export class ProjectContext {
   });
 
   private wsSub?: Subscription;
+  private wsErrorSub?: Subscription;
   private wsTopic?: string;
 
   load(projectId: string): void {
@@ -200,11 +207,24 @@ export class ProjectContext {
     this.ws.connect();
     this.wsTopic = topic;
     this.wsSub = this.ws.subscribe<Issue>(topic).subscribe((issue) => this.upsertIssue(issue));
+    this.drag.listen(projectId);
+    // Mục 8.4: không (còn) là thành viên → BE bỏ qua SUBSCRIBE /board, /drag của project này.
+    this.wsErrorSub = this.ws
+      .errors()
+      .pipe(filter((e) => e.source === 'subscribe' && e.detail.includes(projectId)))
+      .subscribe((e) => {
+        this.stopListening();
+        this.message.error(e.detail);
+        this.router.navigate(['/projects']);
+      });
   }
 
   private stopListening(): void {
     this.wsSub?.unsubscribe();
     this.wsSub = undefined;
+    this.wsErrorSub?.unsubscribe();
+    this.wsErrorSub = undefined;
+    this.drag.stop();
     if (this.wsTopic) this.ws.unsubscribe(this.wsTopic);
     this.wsTopic = undefined;
   }
